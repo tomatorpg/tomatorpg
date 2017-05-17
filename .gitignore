@@ -5,7 +5,7 @@ node_modules
 gin-bin
 
 # generated assets
-/public/assets/js
+/public/assets
 
 # log files
 *.log
