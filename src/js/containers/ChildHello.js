@@ -1,15 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-export default class ChildHello extends Component {
-
-  static propTypes = {
-    message: PropTypes.string,
-  }
-
-  static defaultProps = {
-    message: 'no message',
-  }
+class ChildHello extends Component {
 
   render() {
     const { message } = this.props;
@@ -21,4 +13,15 @@ export default class ChildHello extends Component {
       </span>
     );
   }
+
 }
+
+ChildHello.propTypes = {
+  message: PropTypes.string,
+};
+
+ChildHello.defaultProps = {
+  message: 'no message',
+};
+
+export default ChildHello;
