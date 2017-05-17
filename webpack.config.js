@@ -59,7 +59,7 @@ const scriptHost = getScriptHost();
 module.exports = {
   entry: './src/js/app.js',
   output: {
-    path: path.resolve(__dirname, 'public/assets'),
+    path: path.resolve(__dirname, 'assets/dist'),
     publicPath: !isDev ? '' : scriptHost.publicPath,
     filename: 'js/common.js',
   },

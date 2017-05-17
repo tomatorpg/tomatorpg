@@ -4,6 +4,11 @@
   "description": "Simple server for creating HTTP chatroom that's suitable for TRPG games online.",
   "main": "index.js",
   "scripts": {
+    "build": "npm run build:webpack && npm run build:golang:assets && npm run build:golang:server",
+    "build:golang:assets": "go generate assets/generate.go",
+    "build:golang:server": "go build -o chatroom",
+    "build:webpack": "NODE_ENV=production webpack",
+    "dev": "NODE_ENV=development webpack-dev-server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

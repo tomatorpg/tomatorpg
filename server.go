@@ -9,8 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/tools/godoc/vfs/httpfs"
+
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
+	"github.com/tomatorpg/tomatorpg/assets"
 )
 
 var clients = make(map[*websocket.Conn]bool) // connected clients
@@ -115,9 +118,11 @@ func main() {
 
 	var err error
 
-	// load dot env file
-	if err = godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+	// load dot env file, if exists
+	if _, err = os.Stat(".env"); err == nil {
+		if err = godotenv.Load(); err != nil {
+			log.Fatalf("Unable to load .env, %#v", err)
+		}
 	}
 
 	// load port
@@ -133,7 +138,7 @@ func main() {
 	var webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST")
 
 	// Create a simple file server
-	fs := http.FileServer(http.Dir("./public/assets"))
+	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 	http.HandleFunc("/", handlePage(webpackDevHost))
 

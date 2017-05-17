@@ -4,8 +4,11 @@ node_modules
 # gin binary file
 gin-bin
 
+# binary output
+tomatorpg
+
 # generated assets
-/public/assets
+/assets/dist
 
 # log files
 *.log
