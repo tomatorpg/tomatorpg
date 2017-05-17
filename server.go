@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -93,9 +94,27 @@ func handleActions() {
 	}
 }
 
+func handlePage(scriptPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		t, err := template.ParseFiles("src/html/index.html")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		data := struct {
+			ScriptPath string
+		}{
+			ScriptPath: scriptPath,
+		}
+		t.Execute(w, data)
+	}
+}
+
 func main() {
 
 	var err error
+
+	// load port
 	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {
 		log.Fatalf("Unable to parse PORT: %s", err.Error())
 		return
@@ -104,9 +123,13 @@ func main() {
 		port = 8080
 	}
 
+	// load webpack dev server host
+	var webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST")
+
 	// Create a simple file server
-	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/", fs)
+	fs := http.FileServer(http.Dir("./public/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+	http.HandleFunc("/", handlePage(webpackDevHost))
 
 	// Configure websocket route
 	http.HandleFunc("/api.v1", handleConnections)
