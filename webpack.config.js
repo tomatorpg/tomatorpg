@@ -12,7 +12,9 @@ module.exports = {
     rules: [
       {
         'test': /\.(js|jsx)$/,
+        include: path.join(__dirname, 'src', 'js'),
         'use': [
+          'react-hot-loader',
           'babel-loader',
         ],
       },

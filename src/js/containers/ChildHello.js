@@ -5,9 +5,9 @@ export default class ChildHello extends Component {
     const { message = 'no message' } = this.props;
     return (
       <span className="something">
-        <em>
-          {message}
-        </em>
+        <strong>
+          message: {message}
+        </strong>
       </span>
     );
   }
