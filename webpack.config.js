@@ -1,6 +1,4 @@
-'use strict';
-
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const webpack = require('webpack');
 const path = require('path');
 const url = require('url');
@@ -13,7 +11,7 @@ function getScriptHost() {
   const hostStr = (process.env.WEBPACK_DEV_SERVER_HOST !== undefined) ?
     process.env.WEBPACK_DEV_SERVER_HOST : 'http://localhost:8080';
   const parsed = url.parse(hostStr);
-  const publicPath = parsed.href + 'assets';
+  const publicPath = `${parsed.href}assets`;
   return {
     publicPath,
     url: url.parse(hostStr),
@@ -21,7 +19,7 @@ function getScriptHost() {
 }
 
 const extractSass = new ExtractTextPlugin({
-  filename: "css/[name].[contenthash].css",
+  filename: 'css/[name].[contenthash].css',
   disable: !isDev,
 });
 
@@ -34,23 +32,27 @@ const plugins = isDev ? [
 
 const sassRule = isDev ? {
   test: /\.scss$/,
-  use: [{
-      loader: "style-loader" // creates style nodes from JS strings
-  }, {
-      loader: "css-loader" // translates CSS into CommonJS
-  }, {
-      loader: "sass-loader" // compiles Sass to CSS
-  }]
+  use: [
+    {
+      loader: 'style-loader', // creates style nodes from JS strings
+    }, {
+      loader: 'css-loader', // translates CSS into CommonJS
+    }, {
+      loader: 'sass-loader', // compiles Sass to CSS
+    },
+  ],
 } : {
   test: /\.scss$/,
   use: extractSass.extract({
-    use: [{
-      loader: "css-loader"
-    }, {
-      loader: "sass-loader"
-    }],
+    use: [
+      {
+        loader: 'css-loader',
+      }, {
+        loader: 'sass-loader',
+      },
+    ],
     // use style-loader in development
-    fallback: "style-loader"
+    fallback: 'style-loader',
   }),
 };
 
@@ -66,9 +68,9 @@ module.exports = {
   module: {
     rules: [
       {
-        'test': /\.(js|jsx)$/,
+        test: /\.(js|jsx)$/,
         include: path.join(__dirname, 'src', 'js'),
-        'use': [
+        use: [
           'react-hot-loader',
           'babel-loader',
         ],
@@ -76,21 +78,21 @@ module.exports = {
       sassRule,
     ],
   },
-  plugins: plugins,
+  plugins,
   devServer: {
     hot: true, // this enables hot reload
-    //hotOnly: true, // do not reload browser if hot reload failed
+    // hotOnly: true, // do not reload browser if hot reload failed
     inline: true, // use inline method for hmr
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
     },
     host: scriptHost.url.hostname,
     port: scriptHost.url.port,
-    contentBase: path.join(__dirname, "public"),
+    contentBase: path.join(__dirname, 'public'),
     watchOptions: {
       poll: false,
-    }
-  }
+    },
+  },
 };
