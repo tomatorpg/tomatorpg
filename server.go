@@ -99,12 +99,17 @@ func handleActions() {
 }
 
 func handlePage(scriptPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		t, err := template.ParseFiles("src/html/index.html")
-		if err != nil {
-			log.Fatal(err)
-		}
+	tplBin, err := assets.Asset("html/index.html")
+	if err != nil {
+		log.Fatalf("cannot find index.html in assets")
+	}
 
+	t, err := template.New("index").Parse(string(tplBin))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
 		data := struct {
 			ScriptPath string
 		}{
