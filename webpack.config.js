@@ -56,10 +56,16 @@ const sassRule = isDev ? {
   }),
 };
 
+const externals = {
+};
+
 const scriptHost = getScriptHost();
 
 module.exports = {
-  entry: './src/js/app.js',
+  entry: [
+    'babel-polyfill',
+    './src/js/app.js',
+  ],
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
     publicPath: !isDev ? '' : scriptHost.publicPath,
@@ -78,6 +84,7 @@ module.exports = {
       sassRule,
     ],
   },
+  externals,
   plugins,
   devServer: {
     hot: true, // this enables hot reload
