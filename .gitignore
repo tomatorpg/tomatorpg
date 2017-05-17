@@ -1,0 +1,11 @@
+# nodejs vendor folder
+node_modules
+
+# gin binary file
+gin-bin
+
+# generated assets
+/public/assets/js
+
+# log files
+*.log

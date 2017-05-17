@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Testing</title>
+<style>
+#messages {
+  border: 1px solid #EEE;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  height: 60vh;
+  width: 80vw;
+  padding: 0.5em;
+  margin-bottom: 10px;
+  transition: all 0.6s;
+  overflow-y: hidden;
+}
+#messages:hover {
+  box-shadow: 1px 1px 16px rgba(0,0,0,0.5);
+  overflow-y: auto;
+}
+</style>
+</head>
+<body>
+<div id="hello"></div>
+<div id="messages">
+</div>
+<form id='chatbox'>
+<input name='to_send' type="text" />
+<button type="submit">Submit</button>
+</form>
+<!--
+<script src="./assets/js/common.js"></script>
+-->
+<script src="http://localhost:8080/assets/js/common.js"></script>
+</body>
+</html>
