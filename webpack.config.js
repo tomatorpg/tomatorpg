@@ -1,11 +1,21 @@
 const webpack = require('webpack');
 const path = require('path');
+const url = require('url');
+
+require('dotenv').config();
+
+const hostStr = (process.env.WEBPACK_DEV_SERVER_HOST !== undefined) ?
+  process.env.WEBPACK_DEV_SERVER_HOST : 'http://localhost:8080';
+const port = (hostStr !== undefined && url.parse(hostStr).port) ?
+  url.parse(hostStr).port : '8080';
+const hostname = (hostStr !== undefined && url.parse(hostStr).hostname) ?
+  url.parse(hostStr).hostname : '8080';
 
 module.exports = {
   entry: './src/js/app.js',
   output: {
     path: path.resolve(__dirname, 'public/assets/js'),
-    publicPath: 'http://localhost:8080/assets/js',
+    publicPath: 'http://' + path.join(`${hostname}:${port}`, 'assets/js'),
     filename: 'common.js',
   },
   module: {
@@ -32,8 +42,8 @@ module.exports = {
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
     },
-    host: "localhost",
-    port: 8080,
+    host: hostname,
+    port: port,
     contentBase: path.join(__dirname, "public"),
     watchOptions: {
       poll: false,

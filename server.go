@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 var clients = make(map[*websocket.Conn]bool) // connected clients
@@ -113,6 +114,11 @@ func handlePage(scriptPath string) http.HandlerFunc {
 func main() {
 
 	var err error
+
+	// load dot env file
+	if err = godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	// load port
 	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {

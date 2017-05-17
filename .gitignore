@@ -9,3 +9,6 @@ gin-bin
 
 # log files
 *.log
+
+# dotenv files
+.env
