@@ -10,7 +10,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 function getScriptHost() {
   const hostStr = (process.env.WEBPACK_DEV_SERVER_HOST !== undefined) ?
-    process.env.WEBPACK_DEV_SERVER_HOST : 'http://localhost:8080';
+    process.env.WEBPACK_DEV_SERVER_HOST : 'http://localhost:8081';
   const parsed = url.parse(hostStr);
   const publicPath = `${parsed.href}assets`;
   return {

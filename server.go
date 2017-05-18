@@ -139,8 +139,14 @@ func main() {
 		port = 8080
 	}
 
-	// load webpack dev server host
-	var webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST")
+	// check if in development mode
+	// if so, try to load webpack dev server host
+	webpackDevHost := ""
+	if os.Getenv("NODE_ENV") == "development" {
+		if webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST"); webpackDevHost == "" {
+			webpackDevHost = "http://localhost:8081" // default, if not set
+		}
+	}
 
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))

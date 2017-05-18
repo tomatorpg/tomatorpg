@@ -8,6 +8,9 @@ Simple server for creating HTTP chatroom that's suitable for TRPG games online.
 go get -u github.com/tomatorpg/tomatorpg
 ```
 
+The server code will be inside your [`$GOPATH`](https://golang.org/doc/code.html#GOPATH)
+folder in `$GOPATH/src/github.com/tomatorpg/tomatorpg`.
+
 ## Usage
 
 ```
@@ -40,17 +43,18 @@ First you need to start a webpack-dev-server to live-reload your JS code
 for development:
 
 ```
-WEBPACK_DEV_SERVER_HOST=http://localhost:8080 yarn dev
+NODE_ENV=development yarn dev
 ```
 
 Then you should open another terminal and start the server program. You need
 to inject the webpack dev server path for development. Either:
 ```
-WEBPACK_DEV_SERVER_HOST=http://localhost:8080 ./chatroom
+NODE_ENV=development gin
 ```
 
-or
+or if you have no need to change the go code, you may test against server
+binary with:
 
 ```
-WEBPACK_DEV_SERVER_HOST=http://localhost:8080 gin
+NODE_ENV=development ./tomatorpg
 ```
