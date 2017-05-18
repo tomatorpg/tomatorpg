@@ -1,6 +1,9 @@
-# TRPG Chatroom
+# TomatoTRPG [![Build Status][travis-shield]][travis-link]
 
 Simple server for creating HTTP chatroom that's suitable for TRPG games online.
+
+[travis-link]: https://travis-ci.org/tomatorpg/tomatorpg
+[travis-shield]: https://api.travis-ci.org/tomatorpg/tomatorpg.svg?branch=master
 
 ## Installation
 
