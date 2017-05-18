@@ -14,7 +14,7 @@ folder in `$GOPATH/src/github.com/tomatorpg/tomatorpg`.
 ## Usage
 
 ```
-chatroom
+tomatorpg
 ```
 
 ## Development
@@ -58,3 +58,12 @@ binary with:
 ```
 NODE_ENV=development ./tomatorpg
 ```
+
+### `.env` file
+
+Both the Golang server and the webpack-dev-server config support loading
+variables from dotenv file (`.env`).  You may simply put your environment
+variables in the `.env` of the project root.
+
+For production, you may add a `.env` file at the same folder of the `tomatorpg`
+binary.
