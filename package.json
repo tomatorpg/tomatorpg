@@ -1,5 +1,5 @@
 {
-  "name": "chatroom",
+  "name": "tomatorpg",
   "version": "0.0.1",
   "description": "Simple server for creating HTTP chatroom that's suitable for TRPG games online.",
   "main": "index.js",
