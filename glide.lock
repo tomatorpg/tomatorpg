@@ -1,0 +1,37 @@
+hash: 12d667c564909ff82006d180cd1e9a7b051349635283eea3d77678ca7bc5b494
+updated: 2017-05-19T00:13:16.969207151+08:00
+imports:
+- name: github.com/go-serve/bindatafs
+  version: 1f30d36183f010db5e83986b3554c1a1d9f32d47
+- name: github.com/golang/protobuf
+  version: fec3b39b059c0f88fa6b20f5ed012b1aa203a8b4
+  subpackages:
+  - proto
+- name: github.com/gorilla/websocket
+  version: 3ab3a8b8831546bd18fd182c20687ca853b2bb13
+- name: github.com/joho/godotenv
+  version: 726cc8b906e3d31c70a9671c90a13716a8d3f50d
+- name: golang.org/x/net
+  version: 513929065c19401a1c7b76ecd942f9f86a0c061b
+  subpackages:
+  - context
+- name: golang.org/x/oauth2
+  version: f047394b6d14284165300fd82dad67edb3a4d7f6
+  subpackages:
+  - internal
+- name: golang.org/x/tools
+  version: bf4b54dc687c73b6ef63de8b8abf0ad3951e3edc
+  subpackages:
+  - godoc/vfs
+  - godoc/vfs/httpfs
+- name: google.golang.org/appengine
+  version: 170382fa85b10b94728989dfcf6cc818b335c952
+  subpackages:
+  - internal
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
+testImports: []
