@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -9,11 +10,17 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
+	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
+	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/userauth"
 )
 
 var clients = make(map[*websocket.Conn]bool) // connected clients
@@ -119,6 +126,20 @@ func handlePage(scriptPath string) http.HandlerFunc {
 	}
 }
 
+func initDB(db *gorm.DB) {
+
+	log.Printf("initDB")
+
+	// Migrate the schema
+	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.UserEmail{})
+
+	// Create
+	//db.Create(&models.User{
+	//	Email: "hello+" + time.Now().Format("20060102-150405") + "@world.com",
+	//})
+}
+
 func main() {
 
 	var err error
@@ -148,10 +169,103 @@ func main() {
 		}
 	}
 
+	// connect to database
+	db, err := gorm.Open("sqlite3", "test.db")
+	if err != nil {
+		panic("failed to connect database")
+	}
+	defer db.Close()
+
+	// initialize database / migration
+	// TODO: make this optional on start up
+	initDB(db)
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 	http.HandleFunc("/", handlePage(webpackDevHost))
+	http.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
+		url := userauth.ConfigGoogle("http://localhost:8080").AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusFound)
+	})
+	http.HandleFunc("/oauth2/google/callback", func(w http.ResponseWriter, r *http.Request) {
+		conf := userauth.ConfigGoogle("http://localhost:8080")
+		code := r.URL.Query().Get("code")
+		token, err := conf.Exchange(oauth2.NoContext, code)
+		if err != nil {
+			log.Printf("Code exchange failed with '%s'\n", err.Error())
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
+
+		client := conf.Client(context.Background(), token)
+		resp, err := client.Get("https://www.googleapis.com/oauth2/v1/userinfo")
+		if err != nil {
+			return
+		}
+
+		// read into
+		/*
+			// NOTE: JSON structure of normal response body
+			{
+			 "id": "some-id-in-google-account",
+			 "email": "email-for-the-account",
+			 "verified_email": true,
+			 "name": "Some Name",
+			 "given_name": "Some",
+			 "family_name": "Name",
+			 "link": "https://plus.google.com/+SomeUserOnGPlus",
+			 "picture": "url-to-some-picture",
+			 "gender": "female",
+			 "locale": "zh-HK"
+			}
+		*/
+
+		result := lzjson.Decode(resp.Body)
+		// TODO: detect read  / decode error
+		// TODO: check if the email has been verified or not
+		authUser := models.User{
+			Name:         result.Get("name").String(),
+			PrimaryEmail: result.Get("email").String(),
+		}
+
+		// search existing user with the email
+		var userEmail models.UserEmail
+		var prevUser models.User
+
+		if db.First(&prevUser, "primary_email = ?", authUser.PrimaryEmail); prevUser.PrimaryEmail != "" {
+			// TODO: log this?
+			authUser = prevUser
+		} else if db.First(&userEmail, "email = ?", authUser.PrimaryEmail); userEmail.Email != "" {
+			// TODO: log this?
+			db.First(&authUser, "id = ?", userEmail.UserID)
+		} else {
+
+			tx := db.Begin()
+
+			// create user
+			if res := tx.Create(&authUser); res.Error != nil {
+				// TODO: log and provide error to user
+				tx.Rollback()
+				return
+			}
+
+			// create user-email relation
+			newUserEmail := models.UserEmail{
+				UserID: authUser.ID,
+				Email:  authUser.PrimaryEmail,
+			}
+			if res := tx.Create(&newUserEmail); res.Error != nil {
+				tx.Rollback()
+				return
+			}
+
+			tx.Commit()
+		}
+		log.Printf("user found or created: %#v", authUser)
+
+		// TODO: generate session id / token for JS to use
+	})
 
 	// Configure websocket route
 	http.HandleFunc("/api.v1", handleConnections)
