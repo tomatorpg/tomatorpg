@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	"gopkg.in/jose.v1/crypto"
+	"gopkg.in/jose.v1/jws"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
@@ -264,7 +267,16 @@ func main() {
 		}
 		log.Printf("user found or created: %#v", authUser)
 
-		// TODO: generate session id / token for JS to use
+		// Create JWS claims with the user info
+		claims := jws.Claims{}
+		claims.Set("id", authUser.ID)
+		claims.Set("name", authUser.Name)
+		claims.SetAudience("localhost")
+
+		jwtToken := jws.NewJWT(claims, crypto.SigningMethodHS256)
+		serializedToken, _ := jwtToken.Serialize([]byte("abcdef"))
+
+		http.Redirect(w, r, "http://localhost:8080?token="+string(serializedToken), http.StatusFound)
 	})
 
 	// Configure websocket route
