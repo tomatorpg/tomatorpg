@@ -15,3 +15,10 @@ tomatorpg
 
 # dotenv files
 .env
+
+# all sqlite database files
+*.db
+*.sqlite
+
+# ignore vendor folder
+/vendor

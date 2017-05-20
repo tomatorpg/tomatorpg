@@ -1,0 +1,11 @@
+package: github.com/tomatorpg/tomatorpg
+import:
+- package: github.com/go-serve/bindatafs
+- package: github.com/gorilla/websocket
+  version: ^1.1.0
+- package: github.com/joho/godotenv
+  version: ^1.1.0
+- package: golang.org/x/oauth2
+- package: golang.org/x/tools
+  subpackages:
+  - godoc/vfs/httpfs
