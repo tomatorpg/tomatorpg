@@ -136,6 +136,7 @@ func initDB(db *gorm.DB) {
 	// Migrate the schema
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.UserEmail{})
+	db.AutoMigrate(&models.Room{})
 
 	// Create
 	//db.Create(&models.User{
