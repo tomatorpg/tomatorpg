@@ -5,7 +5,8 @@ import logger from 'redux-logger';
 import { connect, Provider } from 'react-redux';
 
 import App from './containers/App';
-import RoomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
+import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
+import sessionReducer from './stores/SessionStore';
 import Transport, { resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
 
@@ -13,7 +14,8 @@ import '../scss/app.scss';
 // TODO: only apply logger if NODE_ENV is "development"
 const store = createStore(
   combineReducers({
-    roomActivities: RoomActivityReducer,
+    roomActivities: roomActivityReducer,
+    session: sessionReducer,
   }),
   undefined,
   applyMiddleware(logger),
