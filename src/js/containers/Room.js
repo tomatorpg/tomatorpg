@@ -7,6 +7,11 @@ import PropTypes from 'prop-types';
 
 class Room extends Component {
 
+  componentDidUpdate() {
+     // scroll to bottom after any updates
+    this.messageWrapper.scrollTop = this.messageBox.clientHeight;
+  }
+
   submitHandler(evt) {
     const { server } = this.props;
 
@@ -14,18 +19,13 @@ class Room extends Component {
     console.log(`add message: ${this.textInput.value}`);
 
     // send message with server object
-    // TODO: refactor this as redux action dispatch
+    // TODO: add user informaiton / character information / rpc type to this call
     server.send({
       message: this.textInput.value,
     });
 
     // reset text box
     this.textInput.value = '';
-  }
-
-  componentDidUpdate() {
-     // scroll to bottom after any updates
-    this.messageWrapper.scrollTop = this.messageBox.clientHeight;
   }
 
   render() {

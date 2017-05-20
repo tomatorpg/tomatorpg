@@ -9,7 +9,8 @@ import Room from './Room';
 
 class App extends Component {
   render() {
-    const { server } = this.props;
+    const { server, roomActivities } = this.props;
+    console.log('app render: this.props', this.props);
     const rooms = [
       {
         name: 'hello room 1',
@@ -21,7 +22,7 @@ class App extends Component {
     return (
       <div>
         <Rooms rooms={rooms} />
-        <Room server={server} />
+        <Room server={server} roomActivities={roomActivities} />
       </div>
     );
   }
@@ -29,10 +30,12 @@ class App extends Component {
 
 App.propTypes = {
   server: PropTypes.object,
+  roomActivities: PropTypes.array,
 };
 
 App.defaultProps = {
   server: {},
+  roomActivities: [],
 };
 
 export default App;
