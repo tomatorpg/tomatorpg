@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
+	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
+	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/pubsub"
 )
 
@@ -66,14 +67,6 @@ func init() {
 	}
 }
 
-// Action object
-type Action struct {
-	Entity    string    `json:"entity"`
-	Action    string    `json:"action"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
 func handlePage(scriptPath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := struct {
@@ -99,16 +92,29 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	room.Replay(ws)
 
 	for {
-		var msg pubsub.Action
+		var msg models.RoomActivity
+		jsonMsg := lzjson.NewNode()
+
 		// Read in a new Action as JSON and map it to a Action object
-		err := ws.ReadJSON(&msg)
+		err := ws.ReadJSON(jsonMsg)
 		if err != nil {
 			log.Printf("error: %v", err)
 			room.Unregister(ws)
 			break
 		}
 
-		// TODO: find the correct room to do it
-		room.Do(msg)
+		switch jsonMsg.Get("scope").String() {
+		case "":
+			// placeholder
+		case "user":
+			// placeholder
+		case "room":
+			// TODO: find the correct room to do it
+			// TODO: determine if the user is in the room or not
+			if err = jsonMsg.Unmarshal(&msg); err != nil {
+				// deal with it
+			}
+			room.Do(msg)
+		}
 	}
 }

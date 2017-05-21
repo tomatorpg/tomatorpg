@@ -21,6 +21,7 @@ class Room extends Component {
     // send message with server object
     // TODO: add user informaiton / character information / rpc type to this call
     server.send({
+      scope: 'room',
       message: this.textInput.value,
     });
 

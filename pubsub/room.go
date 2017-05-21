@@ -2,32 +2,24 @@ package pubsub
 
 import (
 	"log"
-	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/tomatorpg/tomatorpg/models"
 )
 
 // RoomChannel abstract
 type RoomChannel struct {
-	broadcast chan Action
+	broadcast chan models.RoomActivity
 	clients   map[*websocket.Conn]bool
-	history   []Action
-}
-
-// Action object
-type Action struct {
-	Entity    string    `json:"entity"`
-	Action    string    `json:"action"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
+	history   []models.RoomActivity
 }
 
 // NewRoom create a new room channel
 func NewRoom() *RoomChannel {
 	return &RoomChannel{
-		broadcast: make(chan Action),
+		broadcast: make(chan models.RoomActivity),
 		clients:   make(map[*websocket.Conn]bool),
-		history:   make([]Action, 0, 1024),
+		history:   make([]models.RoomActivity, 0, 1024),
 	}
 }
 
@@ -39,7 +31,7 @@ func (room *RoomChannel) Register(client *websocket.Conn) {
 // Replay play back the action history stack to a newly connected user
 // TODO: allow to playback partially
 func (room *RoomChannel) Replay(client *websocket.Conn) {
-	historyCopy := make([]Action, len(room.history))
+	historyCopy := make([]models.RoomActivity, len(room.history))
 	copy(historyCopy, room.history)
 
 	for _, msg := range historyCopy {
@@ -58,7 +50,7 @@ func (room *RoomChannel) Unregister(client *websocket.Conn) {
 }
 
 // Do action given to the room
-func (room *RoomChannel) Do(activity Action) {
+func (room *RoomChannel) Do(activity models.RoomActivity) {
 	switch activity.Action {
 	case "":
 		// Send the newly received message to the broadcast channel
