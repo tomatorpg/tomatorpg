@@ -2,38 +2,17 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
-	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
-	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
-	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/userauth"
 )
-
-var clients = make(map[*websocket.Conn]bool) // connected clients
-var broadcast = make(chan Action)            // broadcast channel
-
-// Configure the upgrader
-var upgrader = websocket.Upgrader{}
-
-// Action object
-type Action struct {
-	Entity    string    `json:"entity"`
-	Action    string    `json:"action"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
-}
 
 /**
 
@@ -51,122 +30,7 @@ Advanced:
 1. Operational Transformation?
 */
 
-var port uint64
-
-func handleConnections(w http.ResponseWriter, r *http.Request) {
-
-	// Upgrade initial GET request to a websocket
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Make sure we close the connection when the function returns
-	defer ws.Close()
-
-	// Register our new client
-	clients[ws] = true
-
-	for {
-		var msg Action
-		// Read in a new Action as JSON and map it to a Action object
-		err := ws.ReadJSON(&msg)
-		if err != nil {
-			log.Printf("error: %v", err)
-			delete(clients, ws)
-			break
-		}
-
-		switch msg.Action {
-		case "":
-			log.Printf("message: %s", msg.Message)
-		case "sign_in":
-			log.Printf("sign in")
-		}
-		// Send the newly received message to the broadcast channel
-		broadcast <- msg
-	}
-}
-
-func handleActions() {
-	for {
-		// Grab the next message from the broadcast channel
-		msg := <-broadcast
-		// Send it out to every client that is currently connected
-		for client := range clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				log.Printf("error: %v", err)
-				client.Close()
-				delete(clients, client)
-			}
-		}
-	}
-}
-
-func handlePage(scriptPath string) http.HandlerFunc {
-	tplBin, err := assets.Asset("html/index.html")
-	if err != nil {
-		log.Fatalf("cannot find index.html in assets")
-	}
-
-	t, err := template.New("index").Parse(string(tplBin))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		data := struct {
-			ScriptPath string
-		}{
-			ScriptPath: scriptPath,
-		}
-		t.Execute(w, data)
-	}
-}
-
-func initDB(db *gorm.DB) {
-
-	log.Printf("initDB")
-
-	// Migrate the schema
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.UserEmail{})
-	db.AutoMigrate(&models.Room{})
-
-	// Create
-	//db.Create(&models.User{
-	//	Email: "hello+" + time.Now().Format("20060102-150405") + "@world.com",
-	//})
-}
-
 func main() {
-
-	var err error
-
-	// load dot env file, if exists
-	if _, err = os.Stat(".env"); err == nil {
-		if err = godotenv.Load(); err != nil {
-			log.Fatalf("Unable to load .env, %#v", err)
-		}
-	}
-
-	// load port
-	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {
-		log.Fatalf("Unable to parse PORT: %s", err.Error())
-		return
-	}
-	if port == 0 {
-		port = 8080
-	}
-
-	// check if in development mode
-	// if so, try to load webpack dev server host
-	webpackDevHost := ""
-	if os.Getenv("NODE_ENV") == "development" {
-		if webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST"); webpackDevHost == "" {
-			webpackDevHost = "http://localhost:8081" // default, if not set
-		}
-	}
 
 	// connect to database
 	db, err := gorm.Open("sqlite3", "test.db")
