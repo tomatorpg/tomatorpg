@@ -1,4 +1,4 @@
-# TomatoTRPG [![Build Status][travis-shield]][travis-link]
+# TomatoRPG [![Build Status][travis-shield]][travis-link]
 
 Simple server for creating HTTP chatroom that's suitable for TRPG games online.
 
