@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -114,7 +115,14 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB) http.HandlerFunc {
 		jwtToken := jws.NewJWT(claims, crypto.SigningMethodHS256)
 		serializedToken, _ := jwtToken.Serialize([]byte("abcdef"))
 
-		http.Redirect(w, r, "http://localhost:8080?token="+string(serializedToken), http.StatusFound)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "tomatorpg-token",
+			Value:    string(serializedToken),
+			Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days
+			Path:     "/",
+			HttpOnly: true,
+		})
 
+		http.Redirect(w, r, "http://localhost:8080", http.StatusFound)
 	}
 }
