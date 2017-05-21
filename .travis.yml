@@ -13,6 +13,9 @@ before_install:
   - yarn install
 
 script:
-  - go test -v
   - go test -v ./assets
+  - go test -v ./cmd/tomatorpg
+  - go test -v ./models
+  - go test -v ./pubsub
+  - go test -v ./userauth
   - yarn test
