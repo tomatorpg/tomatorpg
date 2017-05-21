@@ -59,9 +59,6 @@ func main() {
 	// Configure websocket route
 	http.HandleFunc("/api.v1", handleConnections)
 
-	// Start listening for incoming chat messages
-	go handleActions()
-
 	log.Printf("listen to port %d", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {

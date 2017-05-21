@@ -11,16 +11,21 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
+	"github.com/tomatorpg/tomatorpg/pubsub"
 )
 
-var broadcast = make(chan Action)            // broadcast channel
-var clients = make(map[*websocket.Conn]bool) // connected clients
+var room *pubsub.RoomChannel
 var port uint64
 var tplIndex *template.Template
 var webpackDevHost string
 
 // Configure the upgrader
 var upgrader = websocket.Upgrader{}
+
+func init() {
+	room = pubsub.NewRoom()
+	go room.Run()
+}
 
 func init() {
 
@@ -90,42 +95,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// Make sure we close the connection when the function returns
 	defer ws.Close()
 
-	// Register our new client
-	clients[ws] = true
+	room.Register(ws)
+	room.Replay(ws)
 
 	for {
-		var msg Action
+		var msg pubsub.Action
 		// Read in a new Action as JSON and map it to a Action object
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
-			delete(clients, ws)
+			room.Unregister(ws)
 			break
 		}
 
-		switch msg.Action {
-		case "":
-			log.Printf("message: %s", msg.Message)
-		case "sign_in":
-			log.Printf("sign in")
-		}
-		// Send the newly received message to the broadcast channel
-		broadcast <- msg
-	}
-}
-
-func handleActions() {
-	for {
-		// Grab the next message from the broadcast channel
-		msg := <-broadcast
-		// Send it out to every client that is currently connected
-		for client := range clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				log.Printf("error: %v", err)
-				client.Close()
-				delete(clients, client)
-			}
-		}
+		// TODO: find the correct room to do it
+		room.Do(msg)
 	}
 }
