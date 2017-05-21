@@ -8,7 +8,7 @@ Simple server for creating HTTP chatroom that's suitable for TRPG games online.
 ## Installation
 
 ```
-go get -u github.com/tomatorpg/tomatorpg
+go get -u github.com/tomatorpg/tomatorpg/cmd/tomatorpg
 ```
 
 The server code will be inside your [`$GOPATH`](https://golang.org/doc/code.html#GOPATH)
@@ -16,8 +16,16 @@ folder in `$GOPATH/src/github.com/tomatorpg/tomatorpg`.
 
 ## Usage
 
+If you have included `$GOPATH/bin` into your `$PATH`, you can run this:
+
 ```
 tomatorpg
+```
+
+Or you can run this:
+
+```
+$(go env GOPATH)/bin/tomatorpg
 ```
 
 ## Development
@@ -33,10 +41,10 @@ go get -u github.com/codegangsta/gin
 
 To run golang server with development mode:
 ```
-gin
+gin -port 8080 -build cmd/tomatorpg
 ```
 
-The live reloader will run at http://localhost:3000 by default. And it will
+The live reloader will run at http://localhost:8080 by default. And it will
 automatically compile your server code on file changes.
 
 

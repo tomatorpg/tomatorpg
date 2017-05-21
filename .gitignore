@@ -5,7 +5,7 @@ node_modules
 gin-bin
 
 # binary output
-tomatorpg
+/tomatorpg
 
 # generated assets
 /assets/dist
