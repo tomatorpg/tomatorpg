@@ -4,16 +4,57 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
 	"github.com/tomatorpg/tomatorpg/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
 )
+
+var port uint64
+var webpackDevHost string
+var publicURL string
+
+func init() {
+
+	var err error
+
+	// load dot env file, if exists
+	if _, err = os.Stat(".env"); err == nil {
+		if err = godotenv.Load(); err != nil {
+			log.Fatalf("Unable to load .env, %#v", err)
+		}
+	}
+
+	// load port
+	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {
+		log.Fatalf("Unable to parse PORT: %s", err.Error())
+		return
+	}
+	if port == 0 {
+		port = 8080
+	}
+
+	// check if in development mode
+	// if so, try to load webpack dev server host
+	if os.Getenv("NODE_ENV") == "development" {
+		if webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST"); webpackDevHost == "" {
+			webpackDevHost = "http://localhost:8081" // default, if not set
+		}
+	}
+
+	// load public url for OAuth2 redirect
+	if publicURL = os.Getenv("PUBLIC_URL"); publicURL == "" {
+		publicURL = "http://localhost:8080"
+	}
+}
 
 /**
 
@@ -52,11 +93,11 @@ func main() {
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 	http.HandleFunc("/", handlePage(webpackDevHost))
 	http.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
-		url := userauth.GoogleConfig("http://localhost:8080").AuthCodeURL("state", oauth2.AccessTypeOffline)
+		url := userauth.GoogleConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
 		http.Redirect(w, r, url, http.StatusFound)
 	})
 	http.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
-		userauth.GoogleConfig("http://localhost:8080"),
+		userauth.GoogleConfig(publicURL),
 		db,
 	))
 	http.Handle("/api.v1", pubsubServer)
