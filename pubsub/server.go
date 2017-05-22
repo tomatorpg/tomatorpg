@@ -67,6 +67,10 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Printf("rpc::roomActivity: user-%d %s %s",
 				activity.UserID, activity.Action, activity.Message)
 			srv.room.Do(activity)
+		case "":
+			if rpc.Action == "" && rpc.Context == "session" {
+				log.Printf("ping from %s", r.RemoteAddr)
+			}
 		default:
 			log.Printf("rpc: %#v", rpc)
 		}
