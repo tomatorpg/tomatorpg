@@ -92,29 +92,30 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	room.Replay(ws)
 
 	for {
-		var msg models.RoomActivity
-		jsonMsg := lzjson.NewNode()
 
-		// Read in a new Action as JSON and map it to a Action object
-		err := ws.ReadJSON(jsonMsg)
+		jsonRequest := lzjson.NewNode()
+		var rpc pubsub.RPC
+		var activity models.RoomActivity
+
+		// parse as JSON request for flexibility
+		err := ws.ReadJSON(&jsonRequest)
 		if err != nil {
 			log.Printf("error: %v", err)
 			room.Unregister(ws)
 			break
 		}
 
-		switch jsonMsg.Get("scope").String() {
-		case "":
-			// placeholder
-		case "user":
-			// placeholder
-		case "room":
-			// TODO: find the correct room to do it
-			// TODO: determine if the user is in the room or not
-			if err = jsonMsg.Unmarshal(&msg); err != nil {
-				// deal with it
-			}
-			room.Do(msg)
+		// parse and execute the RPC
+		jsonRequest.Unmarshal(&rpc)
+		switch rpc.Entity {
+		case "roomActivities":
+			// TODO: validate payload format
+			jsonRequest.Get("payload").Unmarshal(&activity)
+			log.Printf("rpc::roomActivity: user-%d %s %s",
+				activity.UserID, activity.Action, activity.Message)
+			room.Do(activity)
+		default:
+			log.Printf("rpc: %#v", rpc)
 		}
 	}
 }

@@ -9,17 +9,17 @@ import (
 
 // RoomChannel abstract
 type RoomChannel struct {
-	broadcast chan models.RoomActivity
+	broadcast chan Broadcast
 	clients   map[*websocket.Conn]bool
-	history   []models.RoomActivity
+	history   []Broadcast
 }
 
 // NewRoom create a new room channel
 func NewRoom() *RoomChannel {
 	return &RoomChannel{
-		broadcast: make(chan models.RoomActivity),
+		broadcast: make(chan Broadcast),
 		clients:   make(map[*websocket.Conn]bool),
-		history:   make([]models.RoomActivity, 0, 1024),
+		history:   make([]Broadcast, 0, 1024),
 	}
 }
 
@@ -31,12 +31,12 @@ func (room *RoomChannel) Register(client *websocket.Conn) {
 // Replay play back the action history stack to a newly connected user
 // TODO: allow to playback partially
 func (room *RoomChannel) Replay(client *websocket.Conn) {
-	historyCopy := make([]models.RoomActivity, len(room.history))
+	historyCopy := make([]Broadcast, len(room.history))
 	copy(historyCopy, room.history)
 
-	for _, msg := range historyCopy {
-		err := client.WriteJSON(msg)
-		log.Printf("replay: %s", msg.Message)
+	for _, broadcast := range historyCopy {
+		err := client.WriteJSON(broadcast)
+		log.Printf("replay: %s", broadcast.Data.Message)
 		if err != nil {
 			log.Printf("error: %v", err)
 			return
@@ -51,13 +51,13 @@ func (room *RoomChannel) Unregister(client *websocket.Conn) {
 
 // Do action given to the room
 func (room *RoomChannel) Do(activity models.RoomActivity) {
-	switch activity.Action {
-	case "":
-		// Send the newly received message to the broadcast channel
-		room.broadcast <- activity
-	case "sign_in":
-		log.Printf("sign in")
+	// Send the newly received message to the broadcast channel
+	broadcast := Broadcast{
+		Version: "0.1",
+		Entity:  "roomActivities",
+		Data:    activity,
 	}
+	room.broadcast <- broadcast
 }
 
 // Run starts the main loop to handle room broadcast
