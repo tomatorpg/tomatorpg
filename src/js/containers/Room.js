@@ -4,6 +4,7 @@ react/forbid-prop-types: 'warn'
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { messageInRoom } from '../transports/JSONSocket';
 
 class Room extends Component {
 
@@ -13,17 +14,12 @@ class Room extends Component {
   }
 
   submitHandler(evt) {
-    const { server } = this.props;
+    const { dispatch } = this.props;
 
     evt.preventDefault(); // prevent form submission
-    console.log(`add message: ${this.textInput.value}`);
 
     // send message with server object
-    // TODO: add user informaiton / character information / rpc type to this call
-    server.send({
-      scope: 'room',
-      message: this.textInput.value,
-    });
+    dispatch(messageInRoom(this.textInput.value));
 
     // reset text box
     this.textInput.value = '';
@@ -58,12 +54,12 @@ class Room extends Component {
 }
 
 Room.propTypes = {
-  server: PropTypes.object,
+  dispatch: PropTypes.func,
   roomActivities: PropTypes.array,
 };
 
 Room.defaultProps = {
-  server: {},
+  dispatch: () => {},
   roomActivities: [],
 };
 

@@ -7,8 +7,11 @@ import { connect, Provider } from 'react-redux';
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
 import sessionReducer from './stores/SessionStore';
-import Transport, { resolveWsPath } from './transports/JSONSocket';
+import Transport, { createReducer, resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
+
+// transport layer for server
+const server = new Transport(resolveWsPath(window.location, '/api.v1'));
 
 // prepare app to connect to react store
 // TODO: only apply logger if NODE_ENV is "development"
@@ -16,6 +19,7 @@ const store = createStore(
   combineReducers({
     roomActivities: roomActivityReducer,
     session: sessionReducer,
+    transport: createReducer(server),
   }),
   undefined,
   applyMiddleware(logger),
@@ -26,18 +30,33 @@ const mapStateToProps = (state) => {
 };
 const ConnectedApp = connect(mapStateToProps)(App);
 
-// transport layer for server
-const server = new Transport(resolveWsPath(window.location, '/api.v1'));
-server.subscribe((message) => {
-  // TODO: add message should address the character / user
-  // or give the store another action for chat
-  store.dispatch(addMessage(message.message));
+// subscribe server broadcast
+server.subscribe((broadcast) => {
+  const { entity = '', data = {} } = broadcast;
+  if (entity === 'roomActivities') {
+    const { action } = data;
+    switch (action) {
+      case 'message': {
+        const { message } = data;
+        store.dispatch(addMessage(message));
+        break;
+      }
+      default: {
+        // do nothing
+        console.log('TomatoRPG: received unknown roomActivities', data);
+      }
+    }
+  } else {
+    console.log('TomatoRPG: received unknown server broadcast', broadcast);
+  }
 });
+
+// initialize server connection transport
 server.connect();
 
 ReactDOM.render(
   <Provider store={store}>
-    <ConnectedApp server={server} />
+    <ConnectedApp />
   </Provider>,
   document.getElementById('app'),
 );

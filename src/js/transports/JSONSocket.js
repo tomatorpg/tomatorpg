@@ -1,8 +1,137 @@
+// type name to mimic redux store action
+const JSONSocketCmd = 'TOMATO_RPC';
+
+/**
+ * ping
+ * @param {string} message string to send in the room
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function ping() {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    action: 'ping',
+  };
+}
+
+/**
+ * messageInRoom
+ * @param {string} message string to send in the room
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function messageInRoom(message) {
+  // TODO: Support sending message as character
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    entity: 'roomActivities',
+    action: 'create',
+    payload: {
+      action: 'message',
+      message,
+    },
+  };
+}
+
+/**
+ * createCharInRoom
+ * @param {string} name of the character to create
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function createCharInRoom(name) {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    entity: 'roomActivities',
+    action: 'create',
+    payload: {
+      type: 'createCharacter',
+      name,
+    },
+  };
+}
+
+/**
+ * joinRoom
+ * @param {string} roomID for the room to join
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function joinRoom(roomID) {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    entity: 'rooms',
+    room_id: roomID,
+    action: 'joinRoom',
+  };
+}
+
+/**
+ * createRoom
+ * @param {string} name of the room to create
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function createRoom(name = '(no name)') {
+  // TODO: Support sending message / chat as character
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    entity: 'rooms',
+    action: 'create',
+    name,
+  };
+}
+
+/**
+ * deleteRoom
+ * @param {string} roomID for the room to join
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function deleteRoom(id) {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    entity: 'rooms',
+    id,
+    action: 'delete',
+  };
+}
+
+/**
+ * createReducer
+ * @param {string} roomID for the room to join
+ * @return {function} redux compatible reducer function that don't
+ *                    really chnage state.
+ */
+export function createReducer(socket) {
+  return (state = true, action) => {
+    const { type } = action;
+    if (type === JSONSocketCmd) {
+      socket.dispatch(action);
+    }
+    return true;
+  };
+}
+
+/**
+ * resolveWsPathhelper
+ * @param {window.location | url.URL} current window location or any valid url
+ * @param {string} wsPath websocket entity path
+ * @return {string} uri string of the websocket path
+ */
 export function resolveWsPath(uri, wsPath) {
   const protocol = (uri.protocol === 'https:') ? 'wss:' : 'ws:';
   return `${protocol}//${uri.host}${wsPath}`;
 }
 
+/**
+ * @class JSONSocket
+ * @description transport layer implementation to generic WebSocket RPC
+ */
 class JSONSocket {
 
   constructor(uri) {
@@ -11,8 +140,8 @@ class JSONSocket {
     this.subscribers = [];
   }
 
-  send(payload) {
-    this.webSocket.send(JSON.stringify(payload));
+  dispatch(action) {
+    this.webSocket.send(JSON.stringify(action));
   }
 
   subscribe(subscriber) {
@@ -23,21 +152,27 @@ class JSONSocket {
   }
 
   connect() {
-    console.log(`connecting ${this.uri}`);
+    console.info(`%cTomatoRPG transport%c: %cconnecting %c${this.uri}`, 'font-weight: bold', 'color: inherit', 'color: rgb(200,100,0)', 'color: red');
     this.webSocket = new WebSocket(this.uri, 'protocolOne');
     this.webSocket.onopen = () => {
-      this.webSocket.send(JSON.stringify({
-        action: 'sign_in',
-      }));
+      console.info('%cTomatoRPG transport%c: %cconnected.', 'font-weight: bold', 'color: inherit', 'color: green');
+      this.dispatch(ping());
     };
-    this.webSocket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      for (let i = 0; i < this.subscribers.length; i += 1) {
-        (async () => this.subscribers[i](message))();
+    this.webSocket.onmessage = (evt) => {
+      try {
+        const broadcast = JSON.parse(evt.data);
+        for (let i = 0; i < this.subscribers.length; i += 1) {
+          (async () => this.subscribers[i](broadcast))();
+        }
+      } catch (err) {
+        console.groupCollapsed('Unable to parse broadcast message');
+        console.error('error', err);
+        console.error('raw broadcast event:', evt);
+        console.groupEnd();
       }
     };
     this.webSocket.onclose = () => {
-      console.info('connection closed. reconnect.');
+      console.info('%cTomatoRPG transport%c: %cconnection closed. reconnect...', 'font-weight: bold', 'color: inherit', 'color: red');
       window.setTimeout(() => {
         this.connect();
       }, 1000);

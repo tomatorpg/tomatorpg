@@ -9,8 +9,7 @@ import Room from './Room';
 
 class App extends Component {
   render() {
-    const { server, roomActivities } = this.props;
-    console.log('app render: this.props', this.props);
+    const { dispatch, roomActivities } = this.props;
     const rooms = [
       {
         name: 'hello room 1',
@@ -21,20 +20,20 @@ class App extends Component {
     ];
     return (
       <div>
-        <Rooms rooms={rooms} />
-        <Room server={server} roomActivities={roomActivities} />
+        <Rooms dispatch={dispatch} rooms={rooms} />
+        <Room dispatch={dispatch} roomActivities={roomActivities} />
       </div>
     );
   }
 }
 
 App.propTypes = {
-  server: PropTypes.object,
+  dispatch: PropTypes.func,
   roomActivities: PropTypes.array,
 };
 
 App.defaultProps = {
-  server: {},
+  dispatch: () => {},
   roomActivities: [],
 };
 
