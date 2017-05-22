@@ -7,26 +7,17 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
-	"github.com/tomatorpg/tomatorpg/models"
-	"github.com/tomatorpg/tomatorpg/pubsub"
 )
 
-var room *pubsub.RoomChannel
 var port uint64
 var tplIndex *template.Template
 var webpackDevHost string
 
 // Configure the upgrader
 var upgrader = websocket.Upgrader{}
-
-func init() {
-	room = pubsub.NewRoom()
-	go room.Run()
-}
 
 func init() {
 
@@ -75,47 +66,5 @@ func handlePage(scriptPath string) http.HandlerFunc {
 			ScriptPath: scriptPath,
 		}
 		tplIndex.Execute(w, data)
-	}
-}
-
-func handleConnections(w http.ResponseWriter, r *http.Request) {
-
-	// Upgrade initial GET request to a websocket
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Make sure we close the connection when the function returns
-	defer ws.Close()
-
-	room.Register(ws)
-	room.Replay(ws)
-
-	for {
-
-		jsonRequest := lzjson.NewNode()
-		var rpc pubsub.RPC
-		var activity models.RoomActivity
-
-		// parse as JSON request for flexibility
-		err := ws.ReadJSON(&jsonRequest)
-		if err != nil {
-			log.Printf("error: %v", err)
-			room.Unregister(ws)
-			break
-		}
-
-		// parse and execute the RPC
-		jsonRequest.Unmarshal(&rpc)
-		switch rpc.Entity {
-		case "roomActivities":
-			// TODO: validate payload format
-			jsonRequest.Get("payload").Unmarshal(&activity)
-			log.Printf("rpc::roomActivity: user-%d %s %s",
-				activity.UserID, activity.Action, activity.Message)
-			room.Do(activity)
-		default:
-			log.Printf("rpc: %#v", rpc)
-		}
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/tomatorpg/tomatorpg/assets"
+	"github.com/tomatorpg/tomatorpg/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
 )
 
@@ -43,6 +44,9 @@ func main() {
 	// TODO: make this optional on start up
 	initDB(db)
 
+	// websocket pubsub server
+	pubsubServer := pubsub.NewServer(db)
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
@@ -55,9 +59,7 @@ func main() {
 		userauth.GoogleConfig("http://localhost:8080"),
 		db,
 	))
-
-	// Configure websocket route
-	http.HandleFunc("/api.v1", handleConnections)
+	http.Handle("/api.v1", pubsubServer)
 
 	log.Printf("listen to port %d", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
