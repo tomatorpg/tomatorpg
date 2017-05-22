@@ -58,6 +58,7 @@ RPC response
   "tomatorpc": "0.1",
   "entity": "related entity",
   "type": "response",
+  "status": "success",
   "data": {
     "...": "..."
   }

@@ -77,6 +77,14 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			jsonRequest.Get("payload").Unmarshal(&activity)
 			log.Printf("roomActivity: user-%d %s %s",
 				activity.UserID, activity.Action, activity.Message)
+			ws.WriteJSON(Response{
+				Version: "0.1",
+				ID:      rpc.ID,
+				Type:    "response",
+				Entity:  "roomActivity",
+				Action:  "create",
+				Status:  "success",
+			})
 			srv.room.Do(activity)
 		case "rooms":
 			if rpc.Action == "create" {
@@ -90,6 +98,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Type:    "response",
 					Entity:  "rooms",
 					Action:  "create",
+					Status:  "success",
 					Data:    newRoom,
 				})
 			} else if rpc.Action == "list" {
@@ -102,6 +111,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Type:    "response",
 					Entity:  "rooms",
 					Action:  "list",
+					Status:  "success",
 					Data:    rooms,
 				})
 			}

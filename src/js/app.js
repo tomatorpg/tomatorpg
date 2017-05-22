@@ -31,14 +31,13 @@ const mapStateToProps = (state) => {
 const ConnectedApp = connect(mapStateToProps)(App);
 
 // subscribe server broadcast
-server.subscribe((broadcast) => {
-  const { entity = '', data = {} } = broadcast;
+server.subscribe((message) => {
+  const { entity = '', data = {} } = message;
   if (entity === 'roomActivities') {
     const { action } = data;
     switch (action) {
       case 'message': {
-        const { message } = data;
-        store.dispatch(addMessage(message));
+        store.dispatch(addMessage(data.message));
         break;
       }
       default: {
@@ -46,8 +45,13 @@ server.subscribe((broadcast) => {
         console.log('TomatoRPG: received unknown roomActivities', data);
       }
     }
+  } else if (message.type === 'response' && message.status === 'success') {
+    console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
+  } else if (message.type === 'response' && message.status === 'error') {
+    // TODO: throw error and somehow handles it
+    console.error(`TomatoRPG: ${message.entity}.${message.action} ${message.status}: ${message.error}`);
   } else {
-    console.log('TomatoRPG: received unknown server broadcast', broadcast);
+    console.log('TomatoRPG: received unknown server message', message);
   }
 });
 
