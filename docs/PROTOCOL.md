@@ -27,14 +27,20 @@ Either `endpoint` must be present for a valid API call.
 Attribute `type` is reserved for redux compatibility and will be ignored by
 server.
 
-## Room Activity Stream
+## Server Message Stream
 
-Server broadcast activities about a room in the following format:
+Server send 2 types of messages to clients:
+
+1. Activity broadcast;
+2. RPC response.
+
+Activity broadcast:
 
 ```json
 {
   "tomatorpc": "0.1",
   "entity": "roomActivities",
+  "type": "broadcast",
   "data": {
     "room_id": "room-id",
     "user_id": "id of the acting user",
@@ -42,6 +48,18 @@ Server broadcast activities about a room in the following format:
     "action": "room activity type",
     "message": "some message",
     "timestamp": "2016xxxx"
+  }
+}
+```
+
+RPC response
+```json
+{
+  "tomatorpc": "0.1",
+  "entity": "related entity",
+  "type": "response",
+  "data": {
+    "...": "..."
   }
 }
 ```

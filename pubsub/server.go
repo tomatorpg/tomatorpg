@@ -49,7 +49,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for {
 
 		jsonRequest := lzjson.NewNode()
-		var rpc RPC
+		var rpc Request
 		var activity models.RoomActivity
 
 		// parse as JSON request for flexibility
@@ -75,11 +75,38 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "roomActivities":
 			// TODO: validate payload format
 			jsonRequest.Get("payload").Unmarshal(&activity)
-			log.Printf("rpc::roomActivity: user-%d %s %s",
+			log.Printf("roomActivity: user-%d %s %s",
 				activity.UserID, activity.Action, activity.Message)
 			srv.room.Do(activity)
+		case "rooms":
+			if rpc.Action == "create" {
+				newRoom := models.Room{}
+				newRoom.ID = 0 // ensure not injecting ID
+				srv.db.Create(&newRoom)
+				log.Printf("rooms.create: id=%d", newRoom.ID)
+				ws.WriteJSON(Response{
+					Version: "0.1",
+					ID:      rpc.ID,
+					Type:    "response",
+					Entity:  "rooms",
+					Action:  "create",
+					Data:    newRoom,
+				})
+			} else if rpc.Action == "list" {
+				var rooms []models.Room
+				srv.db.Order("created_at desc").Find(&rooms)
+				log.Printf("rooms.list length=%d", len(rooms))
+				ws.WriteJSON(Response{
+					Version: "0.1",
+					ID:      rpc.ID,
+					Type:    "response",
+					Entity:  "rooms",
+					Action:  "list",
+					Data:    rooms,
+				})
+			}
 		case "":
-			if rpc.Action == "" && rpc.Context == "session" {
+			if rpc.Action == "" {
 				log.Printf("%s pinged", r.RemoteAddr)
 			}
 		default:
