@@ -40,6 +40,8 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Make sure we close the connection when the function returns
 	defer ws.Close()
 
+	log.Printf("%s connected", r.RemoteAddr)
+
 	// TODO: dynamically register to room on command
 	srv.room.Register(ws)
 	srv.room.Replay(ws)
@@ -53,7 +55,16 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// parse as JSON request for flexibility
 		err := ws.ReadJSON(&jsonRequest)
 		if err != nil {
-			log.Printf("error: %v", err)
+			switch terr := err.(type) {
+			case *websocket.CloseError:
+				log.Printf("%s disconnected: %d %s",
+					r.RemoteAddr,
+					terr.Code,
+					terr.Text,
+				)
+			default:
+				log.Printf("error: %#v", err)
+			}
 			srv.room.Unregister(ws)
 			break
 		}
@@ -69,7 +80,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			srv.room.Do(activity)
 		case "":
 			if rpc.Action == "" && rpc.Context == "session" {
-				log.Printf("ping from %s", r.RemoteAddr)
+				log.Printf("%s pinged", r.RemoteAddr)
 			}
 		default:
 			log.Printf("rpc: %#v", rpc)

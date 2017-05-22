@@ -68,7 +68,6 @@ func (room *RoomChannel) Run() {
 
 		// add msg to history
 		room.history = append(room.history, msg)
-		log.Printf("room.history.length %d", len(room.history))
 
 		// Send it out to every client that is currently connected
 		for client := range room.clients {
