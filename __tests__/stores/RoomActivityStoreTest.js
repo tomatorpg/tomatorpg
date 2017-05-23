@@ -1,6 +1,6 @@
-import reducer, { add } from '../../src/js/stores/RoomActivityStore';
+import reducer, { add, clear } from '../../src/js/stores/RoomActivityStore';
 
-test('reducer to implement MESSAGE_ADD', () => {
+test('reducer to implement ROOM_ACTIVITIES_MESSAGE', () => {
   expect(reducer(undefined, add('some message'))).toEqual(
     [
       {
@@ -9,4 +9,8 @@ test('reducer to implement MESSAGE_ADD', () => {
       },
     ],
   );
+});
+
+test('reducer to implement ROOM_ACTIVITIES_CLEAR', () => {
+  expect(reducer([{ type: 'message', message: 'hello' }], clear())).toEqual([]);
 });

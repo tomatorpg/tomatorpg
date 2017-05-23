@@ -4,7 +4,7 @@ react/forbid-prop-types: 'warn'
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { createRoom } from '../transports/JSONSocket';
+import { createRoom, joinRoom } from '../transports/JSONSocket';
 
 class Rooms extends Component {
 
@@ -13,20 +13,30 @@ class Rooms extends Component {
     dispatch(createRoom());
   }
 
+  joinRoom(id) {
+    const { dispatch } = this.props;
+    dispatch(joinRoom(id));
+  }
+
   render() {
     const { rooms = [] } = this.props;
     return (rooms.length > 0) ? (
       <div id="rooms">
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
-        <ul>
+        <ol>
           { rooms.map((room, index) => {
             const key = `room-${index}`;
-            return <li key={key} className="room">{room.name}</li>;
+            return (
+              <li key={key} className="room">
+                {room.name} <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+              </li>
+            );
           }) }
-        </ul>
+        </ol>
       </div>
     ) : (
       <div id="rooms">
+        <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <p className="msg-no-room">There is no room yet.</p>
       </div>
     );

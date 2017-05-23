@@ -66,7 +66,7 @@ export function joinRoom(roomID) {
     context: 'session',
     entity: 'rooms',
     room_id: roomID,
-    action: 'joinRoom',
+    action: 'join',
   };
 }
 
@@ -83,6 +83,21 @@ export function createRoom(name = '(no name)') {
     entity: 'rooms',
     action: 'create',
     name,
+  };
+}
+
+/**
+ * listRoom
+ * @param {string} name of the room to create
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function listRooms() {
+  // TODO: Support sending message / chat as character
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    entity: 'rooms',
+    action: 'list',
   };
 }
 
@@ -136,7 +151,6 @@ class JSONSocket {
 
   constructor(uri) {
     this.uri = uri;
-    this.webSocket = new WebSocket(uri, 'protocolOne');
     this.subscribers = [];
   }
 
@@ -151,12 +165,15 @@ class JSONSocket {
     this.subscribers.push(subscriber);
   }
 
-  connect() {
+  connect(callback) {
     console.info(`%cTomatoRPG transport%c: %cconnecting %c${this.uri}`, 'font-weight: bold', 'color: inherit', 'color: rgb(200,100,0)', 'color: red');
     this.webSocket = new WebSocket(this.uri, 'protocolOne');
     this.webSocket.onopen = () => {
       console.info('%cTomatoRPG transport%c: %cconnected.', 'font-weight: bold', 'color: inherit', 'color: green');
       this.dispatch(ping());
+      if (typeof callback === 'function') {
+        callback();
+      }
     };
     this.webSocket.onmessage = (evt) => {
       try {

@@ -9,15 +9,7 @@ import Room from './Room';
 
 class App extends Component {
   render() {
-    const { dispatch, roomActivities } = this.props;
-    const rooms = [
-      {
-        name: 'hello room 1',
-      },
-      {
-        name: 'hello room 1',
-      },
-    ];
+    const { dispatch, roomActivities, rooms } = this.props;
     return (
       <div>
         <Rooms dispatch={dispatch} rooms={rooms} />
@@ -29,11 +21,13 @@ class App extends Component {
 
 App.propTypes = {
   dispatch: PropTypes.func,
+  rooms: PropTypes.array,
   roomActivities: PropTypes.array,
 };
 
 App.defaultProps = {
   dispatch: () => {},
+  rooms: [],
   roomActivities: [],
 };
 
