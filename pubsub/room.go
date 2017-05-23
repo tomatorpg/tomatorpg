@@ -11,7 +11,7 @@ import (
 type RoomChannel struct {
 	broadcast chan Broadcast
 	clients   map[*websocket.Conn]bool
-	history   []Broadcast
+	history   []models.RoomActivity
 }
 
 // NewRoom create a new room channel
@@ -19,7 +19,7 @@ func NewRoom() *RoomChannel {
 	return &RoomChannel{
 		broadcast: make(chan Broadcast),
 		clients:   make(map[*websocket.Conn]bool),
-		history:   make([]Broadcast, 0, 1024),
+		history:   make([]models.RoomActivity, 0, 1024),
 	}
 }
 
@@ -31,15 +31,22 @@ func (room *RoomChannel) Register(client *websocket.Conn) {
 // Replay play back the action history stack to a newly connected user
 // TODO: allow to playback partially
 func (room *RoomChannel) Replay(client *websocket.Conn) {
-	historyCopy := make([]Broadcast, len(room.history))
+	historyCopy := make([]models.RoomActivity, len(room.history))
 	copy(historyCopy, room.history)
 
-	for _, broadcast := range historyCopy {
-		err := client.WriteJSON(broadcast)
-		log.Printf("replay: %s", broadcast.Data.Message)
-		if err != nil {
-			log.Printf("error: %v", err)
-			return
+	if len(historyCopy) > 0 {
+		log.Printf("replay activities to client")
+		for _, activity := range historyCopy {
+			err := room.MessageTo(client, Broadcast{
+				Version: "0.1",
+				Entity:  "roomActivities",
+				Data:    activity,
+			})
+			if err != nil {
+				// break loop
+				log.Printf("error: %v", err)
+				return
+			}
 		}
 	}
 }
@@ -49,8 +56,8 @@ func (room *RoomChannel) Unregister(client *websocket.Conn) {
 	delete(room.clients, client)
 }
 
-// Do action given to the room
-func (room *RoomChannel) Do(activity models.RoomActivity) {
+// Broadcast an activity to the room
+func (room *RoomChannel) Broadcast(activity models.RoomActivity) {
 	// Send the newly received message to the broadcast channel
 	broadcast := Broadcast{
 		Version: "0.1",
@@ -60,6 +67,16 @@ func (room *RoomChannel) Do(activity models.RoomActivity) {
 	room.broadcast <- broadcast
 }
 
+// MessageTo specific client
+func (room *RoomChannel) MessageTo(client *websocket.Conn, msg interface{}) (err error) {
+	err = client.WriteJSON(msg)
+	if err != nil {
+		client.Close()
+		room.Unregister(client)
+	}
+	return
+}
+
 // Run starts the main loop to handle room broadcast
 func (room *RoomChannel) Run() {
 	for {
@@ -67,15 +84,12 @@ func (room *RoomChannel) Run() {
 		msg := <-room.broadcast
 
 		// add msg to history
-		room.history = append(room.history, msg)
+		room.history = append(room.history, msg.Data)
 
 		// Send it out to every client that is currently connected
 		for client := range room.clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
+			if err := room.MessageTo(client, msg); err != nil {
 				log.Printf("error: %v", err)
-				client.Close()
-				delete(room.clients, client)
 			}
 		}
 	}

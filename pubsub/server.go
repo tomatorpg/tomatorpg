@@ -85,7 +85,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Action:  "create",
 				Status:  "success",
 			})
-			srv.room.Do(activity)
+			srv.room.Broadcast(activity)
 		case "rooms":
 			if rpc.Action == "create" {
 				newRoom := models.Room{}
