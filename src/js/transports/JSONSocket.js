@@ -167,7 +167,7 @@ class JSONSocket {
 
   connect(callback) {
     console.info(`%cTomatoRPG transport%c: %cconnecting %c${this.uri}`, 'font-weight: bold', 'color: inherit', 'color: rgb(200,100,0)', 'color: red');
-    this.webSocket = new WebSocket(this.uri, 'protocolOne');
+    this.webSocket = new WebSocket(this.uri, 'tomatorpc-v1');
     this.webSocket.onopen = () => {
       console.info('%cTomatoRPG transport%c: %cconnected.', 'font-weight: bold', 'color: inherit', 'color: green');
       this.dispatch(ping());

@@ -33,6 +33,11 @@ func NewServer(db *gorm.DB) *Server {
 	return &Server{
 		db:    db,
 		rooms: rooms,
+		upgrader: websocket.Upgrader{
+			Subprotocols: []string{
+				"tomatorpc-v1",
+			},
+		},
 	}
 }
 
