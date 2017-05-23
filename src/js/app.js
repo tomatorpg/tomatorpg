@@ -6,9 +6,9 @@ import { connect, Provider } from 'react-redux';
 
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
-import roomsReducer from './stores/RoomsStore';
+import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer from './stores/SessionStore';
-import Transport, { createReducer, resolveWsPath } from './transports/JSONSocket';
+import Transport, { createReducer, listRooms, resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
 
 // transport layer for server
@@ -48,7 +48,15 @@ server.subscribe((message) => {
       }
     }
   } else if (message.type === 'response' && message.status === 'success') {
-    console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
+    if (message.entity === 'rooms') {
+      // either create, update, list or delete rooms
+      console.log(message.data);
+      if (Array.isArray(message.data)) {
+        store.dispatch(setRooms(message.data));
+      }
+    } else {
+      console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
+    }
   } else if (message.type === 'response' && message.status === 'error') {
     // TODO: throw error and somehow handles it
     console.error(`TomatoRPG: ${message.entity}.${message.action} ${message.status}: ${message.error}`);
@@ -58,7 +66,10 @@ server.subscribe((message) => {
 });
 
 // initialize server connection transport
-server.connect();
+server.connect(() => {
+  // only on first connection, not on re-connect
+  store.dispatch(listRooms());
+});
 
 ReactDOM.render(
   <Provider store={store}>
