@@ -1,5 +1,6 @@
 /* eslint
-react/forbid-prop-types: 'warn'
+react/forbid-prop-types: 'warn',
+jsx-a11y/no-autofocus: 'warn',
 */
 
 import React, { Component } from 'react';
@@ -29,14 +30,22 @@ class Room extends Component {
     const { roomActivities } = this.props;
     const messagesSummary = (roomActivities.length > 0) ?
       roomActivities.reduce((acc, activity, index) => {
-        const { type, message = '' } = activity;
+        const { type, message: { message = '', userID = 0 } } = activity;
         if (type === 'message') {
           const key = `message-${index}`;
-          acc.push(<div key={key}>{message}</div>);
+          const userDisplayName = (userID === 0) ? 'Visitor' : `User ${userID}`;
+          acc.push(<div className="message-wrapper" key={key}>
+            <div className="user">
+              {userDisplayName}
+            </div>
+            <div className="message">
+              {message}
+            </div>
+          </div>);
         }
         return acc;
       }, []) :
-      <div>No message yet</div>;
+      <div className="no-message">No message yet</div>;
     return (
       <div id="room">
         <div className="messages-wrapper" ref={(element) => { this.messageWrapper = element; }}>
@@ -45,7 +54,7 @@ class Room extends Component {
           </div>
         </div>
         <form onSubmit={evt => this.submitHandler(evt)}>
-          <input type="text" ref={(input) => { this.textInput = input; }} />
+          <input type="text" autoFocus ref={(input) => { this.textInput = input; }} />
           <button type="submit">Submit</button>
         </form>
       </div>

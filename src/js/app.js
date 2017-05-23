@@ -39,7 +39,11 @@ server.subscribe((message) => {
     const { action } = data;
     switch (action) {
       case 'message': {
-        store.dispatch(addMessage(data.message));
+        const { message: messageText, user_id: userID } = data;
+        store.dispatch(addMessage({
+          message: messageText,
+          userID,
+        }));
         break;
       }
       default: {
