@@ -136,7 +136,6 @@ class JSONSocket {
 
   constructor(uri) {
     this.uri = uri;
-    this.webSocket = new WebSocket(uri, 'protocolOne');
     this.subscribers = [];
   }
 
