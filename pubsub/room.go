@@ -15,12 +15,14 @@ type RoomChannel struct {
 }
 
 // NewRoom create a new room channel
-func NewRoom() *RoomChannel {
-	return &RoomChannel{
+func NewRoom() (room *RoomChannel) {
+	room = &RoomChannel{
 		broadcast: make(chan Broadcast),
 		clients:   make(map[*websocket.Conn]bool),
 		history:   make([]models.RoomActivity, 0, 1024),
 	}
+	go room.Run()
+	return
 }
 
 // Register the given client to the room broadcast

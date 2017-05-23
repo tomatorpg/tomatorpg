@@ -13,20 +13,22 @@ import (
 // Server implements pubsub websocket server
 type Server struct {
 	db       *gorm.DB
-	room     *RoomChannel
+	rooms    map[uint64]*RoomChannel
 	upgrader websocket.Upgrader
 }
 
 // NewServer create pubsub http handler
 func NewServer(db *gorm.DB) *Server {
 
-	// TODO: move this to serve function to dynamically create and remove
-	room := NewRoom()
-	go room.Run()
+	rooms := make(map[uint64]*RoomChannel)
+
+	// TODO: remove dummy room
+	// dummy room
+	rooms[0] = NewRoom()
 
 	return &Server{
-		db:   db,
-		room: room,
+		db:    db,
+		rooms: rooms,
 	}
 }
 
@@ -43,8 +45,9 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s connected", r.RemoteAddr)
 
 	// TODO: dynamically register to room on command
-	srv.room.Register(ws)
-	srv.room.Replay(ws)
+	room := srv.rooms[0]
+	room.Register(ws)
+	room.Replay(ws)
 
 	for {
 
@@ -65,7 +68,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			default:
 				log.Printf("error: %#v", err)
 			}
-			srv.room.Unregister(ws)
+			room.Unregister(ws)
 			break
 		}
 
@@ -85,7 +88,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Action:  "create",
 				Status:  "success",
 			})
-			srv.room.Broadcast(activity)
+			room.Broadcast(activity)
 		case "rooms":
 			if rpc.Action == "create" {
 				newRoom := models.Room{}
