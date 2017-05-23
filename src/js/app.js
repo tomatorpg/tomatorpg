@@ -27,8 +27,8 @@ const store = createStore(
   applyMiddleware(logger),
 );
 const mapStateToProps = (state) => {
-  const { roomActivities } = state;
-  return { roomActivities };
+  const { roomActivities, rooms } = state;
+  return { roomActivities, rooms };
 };
 const ConnectedApp = connect(mapStateToProps)(App);
 
