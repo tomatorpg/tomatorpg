@@ -4,6 +4,7 @@ react/forbid-prop-types: 'warn'
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
+import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
 
@@ -12,6 +13,7 @@ class App extends Component {
     const { dispatch, roomActivities, rooms } = this.props;
     return (
       <div>
+        <Nav />
         <Rooms dispatch={dispatch} rooms={rooms} />
         <Room dispatch={dispatch} roomActivities={roomActivities} />
       </div>

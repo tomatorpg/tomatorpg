@@ -1,0 +1,31 @@
+.main-menu {
+  ul {
+    display: block;
+    height: 50px;
+    line-height: 50px;
+    list-style-type: none;
+    font-size: 1.2em;
+    padding: 0;
+    margin: 0 0 0.5em;
+    box-shadow: 1px 1px 0.5em rgba(0, 0, 0, 0.8);
+    text-align: right;
+
+    li {
+      display: inline;
+      a {
+        display: inline-block;
+        padding: 0 1em;
+        text-decoration: none;
+        color: rgba(240, 240, 240, 1);
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: all 0.4s;
+
+        &:hover {
+          color: rgba(255, 255, 255, 1);
+          background-color: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+  }
+  background-color: rgba(0, 0, 0, 0.5);
+}

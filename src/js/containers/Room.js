@@ -53,7 +53,7 @@ class Room extends Component {
             {messagesSummary}
           </div>
         </div>
-        <form onSubmit={evt => this.submitHandler(evt)}>
+        <form className="room-form" onSubmit={evt => this.submitHandler(evt)}>
           <input type="text" autoFocus ref={(input) => { this.textInput = input; }} />
           <button type="submit">Submit</button>
         </form>

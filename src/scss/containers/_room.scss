@@ -1,0 +1,51 @@
+#room {
+  padding: 1em;
+  .messages-wrapper {
+    position: relative;
+    border: 1px solid #EEE;
+    box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+    height: 60vh;
+    width: 100%;
+    margin: 0 0 10px;
+    transition: all 0.6s;
+    overflow-y: hidden;
+    background-color: rgba(0, 0, 0, 0.05);
+
+    &:hover {
+      box-shadow: 1px 1px 16px rgba(0,0,0,0.5);
+      overflow-y: auto;
+    }
+
+    .no-message {
+      color: rgba(0, 0, 0, 0.5);
+      font-size: 1.1em;
+      font-style: italic;
+      padding: 1em;
+    }
+
+    .message-wrapper {
+      display: flex;
+      margin: 0 0 2px;
+      .user {
+        padding: 0.5em;
+        flex: initial;
+        width: 100px;
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+      .message {
+        padding: 0.5em;
+        flex: 1;
+        background-color: rgba(255, 255, 255, 0.7);
+      }
+
+      &:hover {
+        .user {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        .message {
+          background-color: rgba(255, 255, 255, 1);
+        }
+      }
+    }
+  }
+}
