@@ -2,14 +2,20 @@ const defaultState = [];
 
 export function add(message) {
   return {
-    type: 'MESSAGE_ADD',
+    type: 'ROOM_ACTIVITIES_MESSAGE',
     message,
+  };
+}
+
+export function clear() {
+  return {
+    type: 'ROOM_ACTIVITIES_CLEAR',
   };
 }
 
 const reducer = (state = defaultState, action = {}) => {
   switch (action.type) {
-    case 'MESSAGE_ADD': {
+    case 'ROOM_ACTIVITIES_MESSAGE': {
       const { message } = action;
       const activities = Array.from(state);
       activities.push({
@@ -17,6 +23,10 @@ const reducer = (state = defaultState, action = {}) => {
         message,
       });
       return activities;
+    }
+
+    case 'ROOM_ACTIVITIES_CLEAR': {
+      return [];
     }
 
     default:
