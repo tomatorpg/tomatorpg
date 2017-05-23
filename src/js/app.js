@@ -5,7 +5,7 @@ import logger from 'redux-logger';
 import { connect, Provider } from 'react-redux';
 
 import App from './containers/App';
-import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
+import roomActivityReducer, { add as addMessage, clear as clearMessages } from './stores/RoomActivityStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer from './stores/SessionStore';
 import Transport, { createReducer, listRooms, resolveWsPath } from './transports/JSONSocket';
@@ -49,10 +49,18 @@ server.subscribe((message) => {
     }
   } else if (message.type === 'response' && message.status === 'success') {
     if (message.entity === 'rooms') {
-      // either create, update, list or delete rooms
-      console.log(message.data);
-      if (Array.isArray(message.data)) {
-        store.dispatch(setRooms(message.data));
+      switch (message.action) {
+        case 'list': {
+          // either create, update, list or delete rooms
+          console.log(message.data);
+          if (Array.isArray(message.data)) {
+            store.dispatch(setRooms(message.data));
+          }
+          break;
+        }
+        default:
+          // clear current room messages
+          store.dispatch(clearMessages());
       }
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);

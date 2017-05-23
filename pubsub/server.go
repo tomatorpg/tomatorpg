@@ -156,6 +156,10 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Action:  "join",
 						Status:  "success",
 					})
+
+					// replay message after join
+					room.Replay(ws)
+
 				} else {
 					log.Printf("%s failed to join room %d",
 						r.RemoteAddr,
