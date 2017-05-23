@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -117,6 +118,59 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Status:  "success",
 					Data:    rooms,
 				})
+			} else if rpc.Action == "join" {
+
+				// Find the room
+				idToJoin := uint(jsonRequest.Get("room_id").Int())
+				roomToJoin := models.Room{}
+				srv.db.Find(&roomToJoin, idToJoin)
+				if roomToJoin.ID == idToJoin {
+
+					// unregister client from old room
+					room.Unregister(ws)
+
+					// attach the client to the room
+					if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
+						log.Printf("%s joinned room %d",
+							r.RemoteAddr,
+							roomToJoin.ID,
+						)
+						room = srv.rooms[uint64(roomToJoin.ID)]
+					} else {
+						log.Printf("%s reactivated and joinned room %d",
+							r.RemoteAddr,
+							roomToJoin.ID,
+						)
+						room = NewRoom()
+						srv.rooms[uint64(roomToJoin.ID)] = room
+					}
+
+					// register client to new room
+					room.Register(ws)
+
+					ws.WriteJSON(Response{
+						Version: "0.1",
+						ID:      rpc.ID,
+						Type:    "response",
+						Entity:  "rooms",
+						Action:  "join",
+						Status:  "success",
+					})
+				} else {
+					log.Printf("%s failed to join room %d",
+						r.RemoteAddr,
+						roomToJoin.ID,
+					)
+					ws.WriteJSON(Response{
+						Version: "0.1",
+						ID:      rpc.ID,
+						Type:    "response",
+						Entity:  "rooms",
+						Action:  "join",
+						Status:  "error",
+						Err:     fmt.Errorf("room (id=%d) not found", idToJoin),
+					})
+				}
 			}
 		case "":
 			if rpc.Action == "" {

@@ -8,5 +8,6 @@ type Response struct {
 	Entity  string      `json:"entity"`
 	Action  string      `json:"action"`
 	Status  string      `json:"status,omitempty"`
+	Err     error       `json:"error,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
