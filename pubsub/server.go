@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"gopkg.in/jose.v1/crypto"
+	"gopkg.in/jose.v1/jws"
+
 	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
@@ -50,6 +53,26 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	room.Register(ws)
 	room.Replay(ws)
 
+	// load user from token
+	var user models.User
+	if c, err := r.Cookie("tomatorpg-token"); err != nil {
+		log.Printf("error reading token from cookie: %s", err.Error())
+	} else {
+		serializedToken := []byte(c.Value)
+		token, _ := jws.ParseJWT(serializedToken)
+		if err = token.Validate([]byte("abcdef"), crypto.SigningMethodHS256); err != nil {
+			log.Printf("error validating token: %s", err.Error())
+		}
+
+		// TODO: further validate token (e.g. expires)
+
+		// get user of the id
+		srv.db.Find(&user, token.Claims().Get("id"))
+		if user.ID != 0 {
+			log.Printf("user loaded: %#v", user)
+		}
+	}
+
 	for {
 
 		jsonRequest := lzjson.NewNode()
@@ -79,6 +102,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "roomActivities":
 			// TODO: validate payload format
 			jsonRequest.Get("payload").Unmarshal(&activity)
+			activity.UserID = user.ID // enforce user session
 			log.Printf("roomActivity: user-%d %s %s",
 				activity.UserID, activity.Action, activity.Message)
 			ws.WriteJSON(Response{
