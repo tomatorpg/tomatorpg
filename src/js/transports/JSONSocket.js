@@ -66,7 +66,7 @@ export function joinRoom(roomID) {
     context: 'session',
     entity: 'rooms',
     room_id: roomID,
-    action: 'joinRoom',
+    action: 'join',
   };
 }
 
