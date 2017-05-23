@@ -14,8 +14,10 @@ class App extends Component {
     return (
       <div>
         <Nav />
-        <Rooms dispatch={dispatch} rooms={rooms} />
-        <Room dispatch={dispatch} roomActivities={roomActivities} />
+        <main>
+          <Rooms dispatch={dispatch} rooms={rooms} />
+          <Room dispatch={dispatch} roomActivities={roomActivities} />
+        </main>
       </div>
     );
   }

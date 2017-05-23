@@ -23,16 +23,21 @@ class Rooms extends Component {
     return (rooms.length > 0) ? (
       <div id="rooms">
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
-        <ol>
+        <ul className="rooms">
           { rooms.map((room, index) => {
-            const key = `room-${index}`;
+            const key = `room-${room.id}`;
+            const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
+              room.name : `Room ${room.id}`;
             return (
               <li key={key} className="room">
-                {room.name} <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+                <div className="room-name">{roomDisplayName}</div>
+                <div className="room-actions">
+                  <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+                </div>
               </li>
             );
           }) }
-        </ol>
+        </ul>
       </div>
     ) : (
       <div id="rooms">
