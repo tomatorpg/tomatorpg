@@ -9,7 +9,7 @@ import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
-import { createRoom, joinRoom, replayRoom } from '../transports/JSONSocket';
+import { createRoom, joinRoom, listRooms, replayRoom } from '../transports/JSONSocket';
 
 const ConnectedRooms = connect(
   (state) => {
@@ -18,7 +18,10 @@ const ConnectedRooms = connect(
   },
   dispatch => ({
     dispatch,
-    createRoom: () => (dispatch(createRoom)),
+    createRoom: () => {
+      dispatch(createRoom());
+      dispatch(listRooms());
+    },
   }),
 )(Rooms);
 

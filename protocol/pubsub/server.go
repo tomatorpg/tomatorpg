@@ -24,20 +24,9 @@ type Server struct {
 
 // NewServer create pubsub http handler
 func NewServer(db *gorm.DB) *Server {
-
-	rooms := make(map[uint64]*RoomChannel)
-
-	// TODO: remove dummy room
-	// dummy room
-	rooms[0] = NewRoom()
-	rooms[0].Info = models.Room{
-		ID:   0,
-		Name: "dummy common room",
-	}
-
 	return &Server{
 		db:    db,
-		rooms: rooms,
+		rooms: make(map[uint64]*RoomChannel),
 		upgrader: websocket.Upgrader{
 			Subprotocols: []string{
 				"tomatorpc-v1",
@@ -58,12 +47,11 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s connected", r.RemoteAddr)
 
-	// TODO: dynamically register to room on command
-	room := srv.rooms[0]
-	room.Register(ws)
+	// context variables
+	var room *RoomChannel
+	var user models.User
 
 	// load user from token
-	var user models.User
 	if c, err := r.Cookie("tomatorpg-token"); err != nil {
 		log.Printf("error reading token from cookie: %s", err.Error())
 	} else {
