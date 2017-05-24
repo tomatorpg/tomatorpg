@@ -71,6 +71,22 @@ export function joinRoom(roomID) {
 }
 
 /**
+ * replayRoom
+ * @param {string} roomID for the room to join
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function replayRoom(roomID) {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    entity: 'rooms',
+    room_id: roomID,
+    action: 'replay',
+  };
+}
+
+/**
  * createRoom
  * @param {string} name of the room to create
  * @return {Object} action suitable to dispatch to pseudo reducer and server

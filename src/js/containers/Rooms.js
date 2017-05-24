@@ -4,7 +4,7 @@ react/forbid-prop-types: 'warn'
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { createRoom, joinRoom } from '../transports/JSONSocket';
+import { createRoom, joinRoom, replayRoom } from '../transports/JSONSocket';
 
 class Rooms extends Component {
 
@@ -16,6 +16,7 @@ class Rooms extends Component {
   joinRoom(id) {
     const { dispatch } = this.props;
     dispatch(joinRoom(id));
+    dispatch(replayRoom(id));
   }
 
   render() {
