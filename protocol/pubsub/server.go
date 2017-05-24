@@ -145,17 +145,31 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				})
 			} else if rpc.Action == "replay" {
 				// TODO: this is temp API, should do with CURD
-				log.Printf("rooms.replay: id=%d", room.Info.ID)
-				ws.WriteJSON(Response{
-					Version: "0.1",
-					ID:      rpc.ID,
-					Type:    "response",
-					Entity:  "rooms",
-					Action:  "replay",
-					Status:  "success",
-					Data:    room.Info.ID,
-				})
-				room.Replay(ws)
+				if room != nil {
+					log.Printf("rooms.replay: id=%d", room.Info.ID)
+					ws.WriteJSON(Response{
+						Version: "0.1",
+						ID:      rpc.ID,
+						Type:    "response",
+						Entity:  "rooms",
+						Action:  "replay",
+						Status:  "success",
+						Data:    room.Info.ID,
+					})
+					room.Replay(ws)
+				} else {
+					ws.WriteJSON(Response{
+						Version: "0.1",
+						ID:      rpc.ID,
+						Type:    "response",
+						Entity:  "rooms",
+						Action:  "replay",
+						Status:  "error",
+						Err:     fmt.Errorf("the session is not currently in a room"),
+						Data:    room.Info.ID,
+					})
+					room.Replay(ws)
+				}
 			} else if rpc.Action == "join" {
 
 				// Find the room
@@ -173,7 +187,9 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if roomToJoin.ID == idToJoin {
 
 					// unregister client from old room
-					room.Unregister(ws)
+					if room != nil {
+						room.Unregister(ws)
+					}
 
 					// attach the client to the room
 					if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
