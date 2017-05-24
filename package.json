@@ -10,6 +10,7 @@
     "build:html": "gulp build:html",
     "build:webpack": "NODE_ENV=production webpack",
     "dev": "NODE_ENV=development webpack-dev-server",
+    "dev:gin": "NODE_ENV=development gin -port 8080 -build cmd/tomatorpg/.",
     "test": "yarn test:jest && yarn test:eslint",
     "test:eslint": "eslint ./src/js ./__tests__",
     "test:jest": "jest"
