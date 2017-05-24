@@ -152,10 +152,17 @@ class JSONSocket {
   constructor(uri) {
     this.uri = uri;
     this.subscribers = [];
+    this.ready = false;
+    this.pending = [];
   }
 
   dispatch(action) {
-    this.webSocket.send(JSON.stringify(action));
+    if (this.ready) {
+      this.webSocket.send(JSON.stringify(action));
+    } else {
+      console.log('socket not ready. push the action into pending state.');
+      this.pending.push(action);
+    }
   }
 
   subscribe(subscriber) {
@@ -170,9 +177,14 @@ class JSONSocket {
     this.webSocket = new WebSocket(this.uri, 'tomatorpc-v1');
     this.webSocket.onopen = () => {
       console.info('%cTomatoRPG transport%c: %cconnected.', 'font-weight: bold', 'color: inherit', 'color: green');
+      this.ready = true;
       this.dispatch(ping());
       if (typeof callback === 'function') {
         callback();
+      }
+      while (this.pending.length) {
+        const action = this.pending.shift();
+        this.dispatch(action);
       }
     };
     this.webSocket.onmessage = (evt) => {
@@ -190,6 +202,7 @@ class JSONSocket {
     };
     this.webSocket.onclose = () => {
       console.info('%cTomatoRPG transport%c: %cconnection closed. reconnect...', 'font-weight: bold', 'color: inherit', 'color: red');
+      this.ready = false;
       window.setTimeout(() => {
         this.connect();
       }, 1000);
