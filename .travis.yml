@@ -2,6 +2,7 @@ language: go
 
 go:
   - 1.7.x
+  - 1.8.x
   - master
 
 env:
@@ -16,6 +17,6 @@ script:
   - go test -v ./assets
   - go test -v ./cmd/tomatorpg
   - go test -v ./models
-  - go test -v ./pubsub
+  - go test -v ./protocol/**/*
   - go test -v ./userauth
   - yarn test
