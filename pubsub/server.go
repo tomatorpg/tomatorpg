@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"gopkg.in/jose.v1/crypto"
 	"gopkg.in/jose.v1/jws"
@@ -29,6 +30,10 @@ func NewServer(db *gorm.DB) *Server {
 	// TODO: remove dummy room
 	// dummy room
 	rooms[0] = NewRoom()
+	rooms[0].Info = models.Room{
+		ID:   0,
+		Name: "dummy common room",
+	}
 
 	return &Server{
 		db:    db,
@@ -74,7 +79,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// get user of the id
 		srv.db.Find(&user, token.Claims().Get("id"))
 		if user.ID != 0 {
-			log.Printf("user loaded: %#v", user)
+			log.Printf("user loaded: id=%d name=%#v", user.ID, user.Name)
 		}
 	}
 
@@ -108,8 +113,12 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// TODO: validate payload format
 			jsonRequest.Get("payload").Unmarshal(&activity)
 			activity.UserID = user.ID // enforce user session
-			log.Printf("roomActivity: user-%d %s %s",
-				activity.UserID, activity.Action, activity.Message)
+			log.Printf("roomActivity: user-%d %s in room-%d: %s",
+				activity.UserID,
+				activity.Action,
+				room.Info.ID,
+				activity.Message,
+			)
 			ws.WriteJSON(Response{
 				Version: "0.1",
 				ID:      rpc.ID,
@@ -150,7 +159,15 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else if rpc.Action == "join" {
 
 				// Find the room
-				idToJoin := uint(jsonRequest.Get("room_id").Int())
+				idToJoin := uint(0)
+				switch roomIDinJSON := jsonRequest.Get("room_id"); roomIDinJSON.Type() {
+				case lzjson.TypeNumber:
+					idToJoin = uint(roomIDinJSON.Int())
+				case lzjson.TypeString:
+					idParsed, _ := strconv.ParseFloat(roomIDinJSON.String(), 64)
+					idToJoin = uint(idParsed)
+				}
+
 				roomToJoin := models.Room{}
 				srv.db.Find(&roomToJoin, idToJoin)
 				if roomToJoin.ID == idToJoin {
@@ -171,6 +188,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							roomToJoin.ID,
 						)
 						room = NewRoom()
+						room.Info = roomToJoin
 						srv.rooms[uint64(roomToJoin.ID)] = room
 					}
 
