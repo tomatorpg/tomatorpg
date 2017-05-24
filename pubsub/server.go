@@ -61,7 +61,6 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: dynamically register to room on command
 	room := srv.rooms[0]
 	room.Register(ws)
-	room.Replay(ws)
 
 	// load user from token
 	var user models.User
@@ -156,6 +155,19 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Status:  "success",
 					Data:    rooms,
 				})
+			} else if rpc.Action == "replay" {
+				// TODO: this is temp API, should do with CURD
+				log.Printf("rooms.replay: id=%d", room.Info.ID)
+				ws.WriteJSON(Response{
+					Version: "0.1",
+					ID:      rpc.ID,
+					Type:    "response",
+					Entity:  "rooms",
+					Action:  "replay",
+					Status:  "success",
+					Data:    room.Info.ID,
+				})
+				room.Replay(ws)
 			} else if rpc.Action == "join" {
 
 				// Find the room
@@ -203,9 +215,6 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Action:  "join",
 						Status:  "success",
 					})
-
-					// replay message after join
-					room.Replay(ws)
 
 				} else {
 					log.Printf("%s failed to join room %d",
