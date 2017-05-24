@@ -15,7 +15,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
-	"github.com/tomatorpg/tomatorpg/pubsub"
+	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
 )
 
