@@ -3,20 +3,19 @@ react/forbid-prop-types: 'warn'
 */
 
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { createRoom, joinRoom, replayRoom } from '../transports/JSONSocket';
 
 class Rooms extends Component {
 
   createRoom() {
-    const { dispatch } = this.props;
-    dispatch(createRoom());
+    const { createRoom } = this.props;
+    createRoom();
   }
 
   joinRoom(id) {
-    const { dispatch } = this.props;
-    dispatch(joinRoom(id));
-    dispatch(replayRoom(id));
+    console.log(`goto /rooms/${id}`);
+    this.context.router.history.push(`/rooms/${id}`);
   }
 
   render() {
@@ -25,13 +24,15 @@ class Rooms extends Component {
       <div id="rooms">
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <ul className="rooms">
-          { rooms.map((room, index) => {
+          { rooms.map((room) => {
             const key = `room-${room.id}`;
             const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
               room.name : `Room ${room.id}`;
             return (
               <li key={key} className="room">
-                <div className="room-name">{roomDisplayName}</div>
+                <Link className="room-name" to={`/rooms/${room.id}`}>
+                  {roomDisplayName}
+                </Link>
                 <div className="room-actions">
                   <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
                 </div>
@@ -49,13 +50,17 @@ class Rooms extends Component {
   }
 }
 
+Rooms.contextTypes = {
+  router: PropTypes.object,
+};
+
 Rooms.propTypes = {
-  dispatch: PropTypes.func,
+  createRoom: PropTypes.func,
   rooms: PropTypes.array,
 };
 
 Rooms.defaultProps = {
-  dispatch: () => {},
+  createRoom: () => {},
   rooms: [],
 };
 

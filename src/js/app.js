@@ -2,10 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { applyMiddleware, createStore, combineReducers } from 'redux';
 import logger from 'redux-logger';
-import { connect, Provider } from 'react-redux';
+import { Provider } from 'react-redux';
 
 import App from './containers/App';
-import roomActivityReducer, { add as addMessage, clear as clearMessages } from './stores/RoomActivityStore';
+import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer from './stores/SessionStore';
 import Transport, { createReducer, listRooms, resolveWsPath } from './transports/JSONSocket';
@@ -26,11 +26,6 @@ const store = createStore(
   undefined,
   applyMiddleware(logger),
 );
-const mapStateToProps = (state) => {
-  const { roomActivities, rooms } = state;
-  return { roomActivities, rooms };
-};
-const ConnectedApp = connect(mapStateToProps)(App);
 
 // subscribe server broadcast
 server.subscribe((message) => {
@@ -64,7 +59,7 @@ server.subscribe((message) => {
         }
         default:
           // clear current room messages
-          store.dispatch(clearMessages());
+          // store.dispatch(clearMessages());
       }
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
@@ -85,7 +80,7 @@ server.connect(() => {
 
 ReactDOM.render(
   <Provider store={store}>
-    <ConnectedApp />
+    <App />
   </Provider>,
   document.getElementById('app'),
 );

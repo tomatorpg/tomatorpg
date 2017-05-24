@@ -9,6 +9,11 @@ import { messageInRoom } from '../transports/JSONSocket';
 
 class Room extends Component {
 
+  componentDidMount() {
+    const { onLoad } = this.props;
+    onLoad(this.props);
+  }
+
   componentDidUpdate() {
      // scroll to bottom after any updates
     this.messageWrapper.scrollTop = this.messageBox.clientHeight;
@@ -64,11 +69,13 @@ class Room extends Component {
 
 Room.propTypes = {
   dispatch: PropTypes.func,
+  onLoad: PropTypes.func,
   roomActivities: PropTypes.array,
 };
 
 Room.defaultProps = {
   dispatch: () => {},
+  onLoad: () => {},
   roomActivities: [],
 };
 
