@@ -71,6 +71,22 @@ export function joinRoom(roomID) {
 }
 
 /**
+ * replayRoom
+ * @param {string} roomID for the room to join
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function replayRoom(roomID) {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.1',
+    context: 'session',
+    entity: 'rooms',
+    room_id: roomID,
+    action: 'replay',
+  };
+}
+
+/**
  * createRoom
  * @param {string} name of the room to create
  * @return {Object} action suitable to dispatch to pseudo reducer and server
@@ -152,10 +168,17 @@ class JSONSocket {
   constructor(uri) {
     this.uri = uri;
     this.subscribers = [];
+    this.ready = false;
+    this.pending = [];
   }
 
   dispatch(action) {
-    this.webSocket.send(JSON.stringify(action));
+    if (this.ready) {
+      this.webSocket.send(JSON.stringify(action));
+    } else {
+      console.log('socket not ready. push the action into pending state.');
+      this.pending.push(action);
+    }
   }
 
   subscribe(subscriber) {
@@ -167,12 +190,17 @@ class JSONSocket {
 
   connect(callback) {
     console.info(`%cTomatoRPG transport%c: %cconnecting %c${this.uri}`, 'font-weight: bold', 'color: inherit', 'color: rgb(200,100,0)', 'color: red');
-    this.webSocket = new WebSocket(this.uri, 'protocolOne');
+    this.webSocket = new WebSocket(this.uri, 'tomatorpc-v1');
     this.webSocket.onopen = () => {
       console.info('%cTomatoRPG transport%c: %cconnected.', 'font-weight: bold', 'color: inherit', 'color: green');
+      this.ready = true;
       this.dispatch(ping());
       if (typeof callback === 'function') {
         callback();
+      }
+      while (this.pending.length) {
+        const action = this.pending.shift();
+        this.dispatch(action);
       }
     };
     this.webSocket.onmessage = (evt) => {
@@ -190,6 +218,7 @@ class JSONSocket {
     };
     this.webSocket.onclose = () => {
       console.info('%cTomatoRPG transport%c: %cconnection closed. reconnect...', 'font-weight: bold', 'color: inherit', 'color: red');
+      this.ready = false;
       window.setTimeout(() => {
         this.connect();
       }, 1000);

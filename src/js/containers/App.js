@@ -2,33 +2,72 @@
 react/forbid-prop-types: 'warn'
 */
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
 
+import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
+import { clear as clearMessages } from '../stores/RoomActivityStore';
+import { createRoom, joinRoom, replayRoom } from '../transports/JSONSocket';
+
+const ConnectedRooms = connect(
+  (state) => {
+    const { rooms } = state;
+    return { rooms };
+  },
+  dispatch => ({
+    dispatch,
+    createRoom: () => (dispatch(createRoom)),
+  }),
+)(Rooms);
+
+const ConnectedRoom = connect(
+  (state) => {
+    const { roomActivities } = state;
+    return { roomActivities };
+  },
+  dispatch => ({
+    dispatch,
+    onLoad: (props) => {
+      const { roomID } = props;
+      // dispatch these events when loading the room
+      dispatch(clearMessages());
+      dispatch(joinRoom(roomID));
+      dispatch(replayRoom(roomID));
+    },
+  }),
+)(Room);
 
 class App extends Component {
   render() {
-    const { dispatch, roomActivities, rooms } = this.props;
     return (
-      <div>
-        <Rooms dispatch={dispatch} rooms={rooms} />
-        <Room dispatch={dispatch} roomActivities={roomActivities} />
-      </div>
+      <Router>
+        <div>
+          <Nav />
+          <main>
+            <Route
+              exact
+              path="/"
+              render={() => <ConnectedRooms />}
+            />
+            <Route
+              exact
+              path="/rooms"
+              render={() => <ConnectedRooms />}
+            />
+            <Route
+              path="/rooms/:roomID"
+              render={({ match }) =>
+              (<ConnectedRoom
+                roomID={match.params.roomID}
+              />)}
+            />
+          </main>
+        </div>
+      </Router>
     );
   }
 }
-
-App.propTypes = {
-  dispatch: PropTypes.func,
-  rooms: PropTypes.array,
-  roomActivities: PropTypes.array,
-};
-
-App.defaultProps = {
-  dispatch: () => {},
-  rooms: [],
-  roomActivities: [],
-};
 
 export default App;

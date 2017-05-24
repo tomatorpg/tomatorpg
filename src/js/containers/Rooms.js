@@ -3,19 +3,19 @@ react/forbid-prop-types: 'warn'
 */
 
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { createRoom, joinRoom } from '../transports/JSONSocket';
 
 class Rooms extends Component {
 
   createRoom() {
-    const { dispatch } = this.props;
-    dispatch(createRoom());
+    const { createRoom } = this.props;
+    createRoom();
   }
 
   joinRoom(id) {
-    const { dispatch } = this.props;
-    dispatch(joinRoom(id));
+    console.log(`goto /rooms/${id}`);
+    this.context.router.history.push(`/rooms/${id}`);
   }
 
   render() {
@@ -23,16 +23,23 @@ class Rooms extends Component {
     return (rooms.length > 0) ? (
       <div id="rooms">
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
-        <ol>
-          { rooms.map((room, index) => {
-            const key = `room-${index}`;
+        <ul className="rooms">
+          { rooms.map((room) => {
+            const key = `room-${room.id}`;
+            const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
+              room.name : `Room ${room.id}`;
             return (
               <li key={key} className="room">
-                {room.name} <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+                <Link className="room-name" to={`/rooms/${room.id}`}>
+                  {roomDisplayName}
+                </Link>
+                <div className="room-actions">
+                  <button type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+                </div>
               </li>
             );
           }) }
-        </ol>
+        </ul>
       </div>
     ) : (
       <div id="rooms">
@@ -43,13 +50,17 @@ class Rooms extends Component {
   }
 }
 
+Rooms.contextTypes = {
+  router: PropTypes.object,
+};
+
 Rooms.propTypes = {
-  dispatch: PropTypes.func,
+  createRoom: PropTypes.func,
   rooms: PropTypes.array,
 };
 
 Rooms.defaultProps = {
-  dispatch: () => {},
+  createRoom: () => {},
   rooms: [],
 };
 

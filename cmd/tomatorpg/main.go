@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
@@ -100,6 +101,14 @@ func main() {
 		userauth.GoogleConfig(publicURL),
 		db,
 	))
+	http.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:    "tomatorpg-token",
+			Path:    "/",
+			Expires: time.Now().Add(-1 * time.Hour),
+		})
+		http.Redirect(w, r, "/", http.StatusFound)
+	})
 	http.Handle("/api.v1", pubsubServer)
 
 	log.Printf("listen to port %d", port)

@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+
+	"gopkg.in/jose.v1/crypto"
+	"gopkg.in/jose.v1/jws"
 
 	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
@@ -26,10 +30,19 @@ func NewServer(db *gorm.DB) *Server {
 	// TODO: remove dummy room
 	// dummy room
 	rooms[0] = NewRoom()
+	rooms[0].Info = models.Room{
+		ID:   0,
+		Name: "dummy common room",
+	}
 
 	return &Server{
 		db:    db,
 		rooms: rooms,
+		upgrader: websocket.Upgrader{
+			Subprotocols: []string{
+				"tomatorpc-v1",
+			},
+		},
 	}
 }
 
@@ -48,7 +61,26 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: dynamically register to room on command
 	room := srv.rooms[0]
 	room.Register(ws)
-	room.Replay(ws)
+
+	// load user from token
+	var user models.User
+	if c, err := r.Cookie("tomatorpg-token"); err != nil {
+		log.Printf("error reading token from cookie: %s", err.Error())
+	} else {
+		serializedToken := []byte(c.Value)
+		token, _ := jws.ParseJWT(serializedToken)
+		if err = token.Validate([]byte("abcdef"), crypto.SigningMethodHS256); err != nil {
+			log.Printf("error validating token: %s", err.Error())
+		}
+
+		// TODO: further validate token (e.g. expires)
+
+		// get user of the id
+		srv.db.Find(&user, token.Claims().Get("id"))
+		if user.ID != 0 {
+			log.Printf("user loaded: id=%d name=%#v", user.ID, user.Name)
+		}
+	}
 
 	for {
 
@@ -79,8 +111,13 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "roomActivities":
 			// TODO: validate payload format
 			jsonRequest.Get("payload").Unmarshal(&activity)
-			log.Printf("roomActivity: user-%d %s %s",
-				activity.UserID, activity.Action, activity.Message)
+			activity.UserID = user.ID // enforce user session
+			log.Printf("roomActivity: user-%d %s in room-%d: %s",
+				activity.UserID,
+				activity.Action,
+				room.Info.ID,
+				activity.Message,
+			)
 			ws.WriteJSON(Response{
 				Version: "0.1",
 				ID:      rpc.ID,
@@ -118,10 +155,31 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Status:  "success",
 					Data:    rooms,
 				})
+			} else if rpc.Action == "replay" {
+				// TODO: this is temp API, should do with CURD
+				log.Printf("rooms.replay: id=%d", room.Info.ID)
+				ws.WriteJSON(Response{
+					Version: "0.1",
+					ID:      rpc.ID,
+					Type:    "response",
+					Entity:  "rooms",
+					Action:  "replay",
+					Status:  "success",
+					Data:    room.Info.ID,
+				})
+				room.Replay(ws)
 			} else if rpc.Action == "join" {
 
 				// Find the room
-				idToJoin := uint(jsonRequest.Get("room_id").Int())
+				idToJoin := uint(0)
+				switch roomIDinJSON := jsonRequest.Get("room_id"); roomIDinJSON.Type() {
+				case lzjson.TypeNumber:
+					idToJoin = uint(roomIDinJSON.Int())
+				case lzjson.TypeString:
+					idParsed, _ := strconv.ParseFloat(roomIDinJSON.String(), 64)
+					idToJoin = uint(idParsed)
+				}
+
 				roomToJoin := models.Room{}
 				srv.db.Find(&roomToJoin, idToJoin)
 				if roomToJoin.ID == idToJoin {
@@ -142,6 +200,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							roomToJoin.ID,
 						)
 						room = NewRoom()
+						room.Info = roomToJoin
 						srv.rooms[uint64(roomToJoin.ID)] = room
 					}
 
@@ -156,9 +215,6 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Action:  "join",
 						Status:  "success",
 					})
-
-					// replay message after join
-					room.Replay(ws)
 
 				} else {
 					log.Printf("%s failed to join room %d",

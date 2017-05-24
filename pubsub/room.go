@@ -9,6 +9,7 @@ import (
 
 // RoomChannel abstract
 type RoomChannel struct {
+	Info      models.Room
 	broadcast chan Broadcast
 	clients   map[*websocket.Conn]bool
 	history   []models.RoomActivity
