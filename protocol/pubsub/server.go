@@ -89,7 +89,9 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			default:
 				log.Printf("error: %#v", err)
 			}
-			room.Unregister(ws)
+			if room != nil {
+				room.Unregister(ws)
+			}
 			break
 		}
 
