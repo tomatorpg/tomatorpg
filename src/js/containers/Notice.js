@@ -8,9 +8,11 @@ import PropTypes from 'prop-types';
 class Notice extends Component {
     render() {
         return (
-            <div id="notice">
-            {this.props.children}
-            </div>
+            {this.props.visible ?
+                <div id="notice">
+                {this.props.children}
+                </div>: null
+            }
         );
     }
 }
