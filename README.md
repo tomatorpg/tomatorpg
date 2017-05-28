@@ -60,7 +60,7 @@ NODE_ENV=development yarn dev
 Then you should open another terminal and start the server program. You need
 to inject the webpack dev server path for development. Either:
 ```
-NODE_ENV=development gin
+yarn run dev:gin
 ```
 
 or if you have no need to change the go code, you may test against server
