@@ -100,77 +100,42 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// TODO: validate payload format
 			jsonRequest.Get("payload").Unmarshal(&activity)
 			activity.UserID = user.ID // enforce user session
+			if activity.Action == "" {
+				activity.Action = "message"
+			}
 			log.Printf("roomActivity: user-%d %s in room-%d: %s",
 				activity.UserID,
 				activity.Action,
 				room.Info.ID,
 				activity.Message,
 			)
-			ws.WriteJSON(Response{
-				Version: "0.1",
-				ID:      rpc.ID,
-				Type:    "response",
-				Entity:  "roomActivity",
-				Action:  "create",
-				Status:  "success",
-			})
+			ws.WriteJSON(SuccessResponseTo(rpc, nil))
 			room.Broadcast(activity)
 		case "rooms":
-			if rpc.Action == "create" {
+			if rpc.Method == "create" {
 				newRoom := models.Room{}
 				newRoom.ID = 0 // ensure not injecting ID
 				srv.db.Create(&newRoom)
 				log.Printf("rooms.create: id=%d", newRoom.ID)
-				ws.WriteJSON(Response{
-					Version: "0.1",
-					ID:      rpc.ID,
-					Type:    "response",
-					Entity:  "rooms",
-					Action:  "create",
-					Status:  "success",
-					Data:    newRoom,
-				})
-			} else if rpc.Action == "list" {
+				ws.WriteJSON(SuccessResponseTo(rpc, nil))
+			} else if rpc.Method == "list" {
 				var rooms []models.Room
 				srv.db.Order("created_at desc").Find(&rooms)
 				log.Printf("rooms.list length=%d", len(rooms))
-				ws.WriteJSON(Response{
-					Version: "0.1",
-					ID:      rpc.ID,
-					Type:    "response",
-					Entity:  "rooms",
-					Action:  "list",
-					Status:  "success",
-					Data:    rooms,
-				})
-			} else if rpc.Action == "replay" {
+				ws.WriteJSON(SuccessResponseTo(rpc, rooms))
+			} else if rpc.Method == "replay" {
 				// TODO: this is temp API, should do with CURD
 				if room != nil {
 					log.Printf("rooms.replay: id=%d", room.Info.ID)
-					ws.WriteJSON(Response{
-						Version: "0.1",
-						ID:      rpc.ID,
-						Type:    "response",
-						Entity:  "rooms",
-						Action:  "replay",
-						Status:  "success",
-						Data:    room.Info.ID,
-					})
+					ws.WriteJSON(SuccessResponseTo(rpc, room.Info.ID))
 					room.Replay(ws)
 				} else {
-					ws.WriteJSON(Response{
-						Version: "0.1",
-						ID:      rpc.ID,
-						Type:    "response",
-						Entity:  "rooms",
-						Action:  "replay",
-						Status:  "error",
-						Err:     fmt.Errorf("the session is not currently in a room"),
-						Data:    room.Info.ID,
-					})
-					room.Replay(ws)
+					ws.WriteJSON(ErrorResponseTo(
+						rpc,
+						fmt.Errorf("the session is not currently in a room"),
+					))
 				}
-			} else if rpc.Action == "join" {
+			} else if rpc.Method == "join" {
 
 				// Find the room
 				idToJoin := uint(0)
@@ -211,37 +176,26 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// register client to new room
 					room.Register(ws)
 
-					ws.WriteJSON(Response{
-						Version: "0.1",
-						ID:      rpc.ID,
-						Type:    "response",
-						Entity:  "rooms",
-						Action:  "join",
-						Status:  "success",
-					})
-
+					ws.WriteJSON(SuccessResponseTo(rpc, nil))
 				} else {
 					log.Printf("%s failed to join room %d",
 						r.RemoteAddr,
 						roomToJoin.ID,
 					)
-					ws.WriteJSON(Response{
-						Version: "0.1",
-						ID:      rpc.ID,
-						Type:    "response",
-						Entity:  "rooms",
-						Action:  "join",
-						Status:  "error",
-						Err:     fmt.Errorf("room (id=%d) not found", idToJoin),
-					})
+					ws.WriteJSON(ErrorResponseTo(
+						rpc,
+						fmt.Errorf("room (id=%d) not found", idToJoin),
+					))
 				}
 			}
 		case "":
-			if rpc.Action == "" {
+			if rpc.Method == "" {
 				log.Printf("%s pinged", r.RemoteAddr)
 			}
+			ws.WriteJSON(SuccessResponseTo(rpc, "pong"))
 		default:
-			log.Printf("rpc: %#v", rpc)
+			log.Printf(`error="unknown" rpc call: ip: %s rpc: %#v`,
+				r.RemoteAddr, rpc)
 		}
 	}
 }

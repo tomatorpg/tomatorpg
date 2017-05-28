@@ -11,7 +11,7 @@ export function ping() {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
     context: 'session',
-    action: 'ping',
+    method: 'ping',
   };
 }
 
@@ -27,7 +27,7 @@ export function messageInRoom(message) {
     tomatorpc: '0.1',
     context: 'session',
     entity: 'roomActivities',
-    action: 'create',
+    method: 'create',
     payload: {
       action: 'message',
       message,
@@ -46,9 +46,9 @@ export function createCharInRoom(name) {
     tomatorpc: '0.1',
     context: 'session',
     entity: 'roomActivities',
-    action: 'create',
+    method: 'create',
     payload: {
-      type: 'createCharacter',
+      action: 'createCharacter',
       name,
     },
   };
@@ -66,7 +66,7 @@ export function joinRoom(roomID) {
     context: 'session',
     entity: 'rooms',
     room_id: roomID,
-    action: 'join',
+    method: 'join',
   };
 }
 
@@ -82,7 +82,7 @@ export function replayRoom(roomID) {
     context: 'session',
     entity: 'rooms',
     room_id: roomID,
-    action: 'replay',
+    method: 'replay',
   };
 }
 
@@ -97,7 +97,7 @@ export function createRoom(name = '(no name)') {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
     entity: 'rooms',
-    action: 'create',
+    method: 'create',
     name,
   };
 }
@@ -113,7 +113,7 @@ export function listRooms() {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
     entity: 'rooms',
-    action: 'list',
+    method: 'list',
   };
 }
 
@@ -128,7 +128,7 @@ export function deleteRoom(id) {
     tomatorpc: '0.1',
     entity: 'rooms',
     id,
-    action: 'delete',
+    method: 'delete',
   };
 }
 

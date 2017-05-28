@@ -46,9 +46,10 @@ server.subscribe((message) => {
         console.log('TomatoRPG: received unknown roomActivities', data);
       }
     }
-  } else if (message.type === 'response' && message.status === 'success') {
+  } else if (message.message_type === 'response' && message.status === 'success') {
     if (message.entity === 'rooms') {
-      switch (message.action) {
+      const { method } = message;
+      switch (method) {
         case 'list': {
           // either create, update, list or delete rooms
           console.log(message.data);
@@ -62,11 +63,11 @@ server.subscribe((message) => {
           // store.dispatch(clearMessages());
       }
     } else {
-      console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
+      console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
     }
-  } else if (message.type === 'response' && message.status === 'error') {
+  } else if (message.message_type === 'response' && message.status === 'error') {
     // TODO: throw error and somehow handles it
-    console.error(`TomatoRPG: ${message.entity}.${message.action} ${message.status}: ${message.error}`);
+    console.error(`TomatoRPG: ${message.entity}.${message.method} ${message.status}: ${message.error}`);
   } else {
     console.log('TomatoRPG: received unknown server message', message);
   }
