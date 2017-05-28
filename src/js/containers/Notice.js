@@ -9,7 +9,7 @@ class Notice extends Component {
     render() {
         return (
             <div className="notice-board">
-            Test
+            {this.props.children}
             </div>
         );
     }

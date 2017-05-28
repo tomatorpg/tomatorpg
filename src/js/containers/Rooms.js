@@ -5,6 +5,7 @@ react/forbid-prop-types: 'warn'
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import Notice from './Notice';
 
 class Rooms extends Component {
 
@@ -21,7 +22,8 @@ class Rooms extends Component {
   render() {
     const { rooms = [] } = this.props;
     return (rooms.length > 0) ? (
-      <div id="rooms">
+        <div id="rooms">
+        <Notice>Tomato TRPG Testing.</Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <ul className="rooms">
           { rooms.map((room) => {
@@ -43,6 +45,7 @@ class Rooms extends Component {
       </div>
     ) : (
       <div id="rooms">
+      <Notice>Tomato TRPG Testing.</Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <p className="msg-no-room">There is no room yet.</p>
       </div>
