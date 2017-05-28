@@ -23,7 +23,11 @@ class Rooms extends Component {
     const { rooms = [] } = this.props;
     return (rooms.length > 0) ? (
         <div id="rooms">
-        <Notice>Tomato TRPG Testing.</Notice>
+        <Notice>
+          <h1 style={{textAlign:'center'}}> Welcome to Tomato RPG. </h1>
+          <p style={{marginLeft:'1em', marginRight:'1em'}}> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.
+          Quisque tempus, dui a tempor cursus, augue nunc convallis lectus, sit amet egestas nibh libero et nisi. Phasellus tristique consectetur sodales.</p>
+        </Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <ul className="rooms">
           { rooms.map((room) => {
@@ -45,7 +49,11 @@ class Rooms extends Component {
       </div>
     ) : (
       <div id="rooms">
-      <Notice>Tomato TRPG Testing.</Notice>
+      <Notice>
+        <h1 style={{textAlign:'center'}}> Welcome to Tomato RPG. </h1>
+        <p style={{marginLeft:'1em', marginRight:'1em'}}> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.
+        Quisque tempus, dui a tempor cursus, augue nunc convallis lectus, sit amet egestas nibh libero et nisi. Phasellus tristique consectetur sodales.</p>
+      </Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <p className="msg-no-room">There is no room yet.</p>
       </div>

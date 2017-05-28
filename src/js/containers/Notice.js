@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 class Notice extends Component {
     render() {
         return (
-            <div className="notice-board">
+            <div id="notice">
             {this.props.children}
             </div>
         );
