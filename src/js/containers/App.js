@@ -1,7 +1,7 @@
 /* eslint
 react/forbid-prop-types: 'warn'
 */
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 
@@ -44,35 +44,31 @@ const ConnectedRoom = connect(
   }),
 )(Room);
 
-class App extends Component {
-  render() {
-    return (
-      <Router>
-        <div>
-          <Nav />
-          <main>
-            <Route
-              exact
-              path="/"
-              render={() => <ConnectedRooms />}
-            />
-            <Route
-              exact
-              path="/rooms"
-              render={() => <ConnectedRooms />}
-            />
-            <Route
-              path="/rooms/:roomID"
-              render={({ match }) =>
-              (<ConnectedRoom
-                roomID={match.params.roomID}
-              />)}
-            />
-          </main>
-        </div>
-      </Router>
-    );
-  }
-}
+const App = () => (
+  <Router>
+    <div>
+      <Nav />
+      <main>
+        <Route
+          exact
+          path="/"
+          render={() => <ConnectedRooms />}
+        />
+        <Route
+          exact
+          path="/rooms"
+          render={() => <ConnectedRooms />}
+        />
+        <Route
+          path="/rooms/:roomID"
+          render={({ match }) =>
+          (<ConnectedRoom
+            roomID={match.params.roomID}
+          />)}
+        />
+      </main>
+    </div>
+  </Router>
+);
 
 export default App;
