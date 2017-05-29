@@ -38,38 +38,36 @@ server.subscribe('open', () => {
 
 // subscribe server broadcast
 server.subscribe('message', (message) => {
-  const { entity = '', data = {} } = message;
-  if (entity === 'roomActivities') {
-    const { action } = data;
-    switch (action) {
-      case 'message': {
-        const { message: messageText, user_id: userID } = data;
-        store.dispatch(addMessage({
-          message: messageText,
-          userID,
-        }));
-        break;
-      }
-      default: {
-        // do nothing
-        console.log('TomatoRPG: received unknown roomActivities', data);
-      }
-    }
-  } else if (message.message_type === 'response' && message.status === 'success') {
-    if (message.entity === 'rooms') {
-      const { method } = message;
-      switch (method) {
-        case 'list': {
-          // either create, update, list or delete rooms
-          console.log(message.data);
-          if (Array.isArray(message.data)) {
-            store.dispatch(setRooms(message.data));
-          }
+  const {
+    entity = '',
+    method = '',
+    message_type: messageType = '',
+    status = '',
+    data = {},
+  } = message;
+
+  if (messageType === 'broadcast') {
+    if (entity === 'roomActivities') {
+      const { action } = data;
+      switch (action) {
+        case 'message': {
+          const { message: messageText, user_id: userID } = data;
+          store.dispatch(addMessage({
+            message: messageText,
+            userID,
+          }));
           break;
         }
-        default:
-          // clear current room messages
-          // store.dispatch(clearMessages());
+        default: {
+          // do nothing
+          console.log('TomatoRPG: received unknown roomActivities', message);
+        }
+      }
+    }
+  } else if (messageType === 'response' && status === 'success') {
+    if (entity === 'rooms' && method === 'list') {
+      if (Array.isArray(message.data)) {
+        store.dispatch(setRooms(message.data));
       }
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);

@@ -41,8 +41,9 @@ func (room *RoomChannel) Replay(client *websocket.Conn) {
 		log.Printf("replay activities to client")
 		for _, activity := range historyCopy {
 			err := room.MessageTo(client, Broadcast{
-				Version: "0.1",
+				Version: "0.2",
 				Entity:  "roomActivities",
+				Type:    "broadcast",
 				Data:    activity,
 			})
 			if err != nil {
