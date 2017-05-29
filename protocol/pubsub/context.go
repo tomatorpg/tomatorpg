@@ -20,9 +20,9 @@ const (
 )
 
 // Session store connection session information
-// for a pubsub websocket sesion
+// for a pubsub websocket sesions
 type Session struct {
-	HttpRequest *http.Request
+	HTTPRequest *http.Request
 	Room        *RoomChannel
 	User        models.User
 	Conn        *websocket.Conn
@@ -50,13 +50,13 @@ func GetDB(ctx context.Context) (db *gorm.DB) {
 	return
 }
 
-// WithJsonReq stores a websocket connection reference into context
-func WithJsonReq(parent context.Context, node lzjson.Node) context.Context {
+// WithJSONReq stores a websocket connection reference into context
+func WithJSONReq(parent context.Context, node lzjson.Node) context.Context {
 	return context.WithValue(parent, jsonReqKey, node)
 }
 
-// GetJsonReq get a websocket connection reference from context, if any
-func GetJsonReq(ctx context.Context) (node lzjson.Node) {
+// GetJSONReq get a websocket connection reference from context, if any
+func GetJSONReq(ctx context.Context) (node lzjson.Node) {
 	node, _ = ctx.Value(jsonReqKey).(lzjson.Node)
 	return
 }

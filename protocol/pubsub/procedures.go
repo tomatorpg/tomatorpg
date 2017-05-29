@@ -107,7 +107,7 @@ func createRoomActivity(ctx context.Context, req Request) Response {
 	// TODO: remove the need to do json decode here
 	// TODO: validate payload format
 	var activity models.RoomActivity
-	jsonRequest := GetJsonReq(ctx)
+	jsonRequest := GetJSONReq(ctx)
 	if jsonRequest == nil {
 		return ErrorResponseTo(
 			req,
@@ -153,7 +153,7 @@ func joinRoom(ctx context.Context, req Request) Response {
 		)
 	}
 
-	jsonRequest := GetJsonReq(ctx)
+	jsonRequest := GetJSONReq(ctx)
 	if jsonRequest == nil {
 		return ErrorResponseTo(
 			req,
@@ -186,13 +186,13 @@ func joinRoom(ctx context.Context, req Request) Response {
 		// attach the client to the room
 		if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
 			log.Printf("%s joinned room %d",
-				sess.HttpRequest.RemoteAddr,
+				sess.HTTPRequest.RemoteAddr,
 				roomToJoin.ID,
 			)
 			sess.Room = srv.rooms[uint64(roomToJoin.ID)]
 		} else {
 			log.Printf("%s reactivated and joinned room %d",
-				sess.HttpRequest.RemoteAddr,
+				sess.HTTPRequest.RemoteAddr,
 				roomToJoin.ID,
 			)
 
@@ -211,7 +211,7 @@ func joinRoom(ctx context.Context, req Request) Response {
 		return SuccessResponseTo(req, nil)
 	} else {
 		log.Printf("%s failed to join room %d",
-			sess.HttpRequest.RemoteAddr,
+			sess.HTTPRequest.RemoteAddr,
 			roomToJoin.ID,
 		)
 		return ErrorResponseTo(
