@@ -7,13 +7,12 @@ import PropTypes from 'prop-types';
 
 class Notice extends Component {
     render() {
-        return (
-            {this.props.visible ?
-                <div id="notice">
+        return (this.props.visible) ? (
+            <div id="notice">
                 {this.props.children}
-                </div>: null
-            }
-        );
+            </div>
+
+        ): (null)
     }
 }
 
