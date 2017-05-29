@@ -98,7 +98,8 @@ func createRoomActivity(ctx context.Context, req Request) Response {
 		)
 	}
 	jsonRequest.Get("payload").Unmarshal(&activity)
-	activity.UserID = sess.User.ID // enforce user session
+	activity.UserID = sess.User.ID      // enforce user session
+	activity.RoomID = sess.Room.Info.ID // enforce room id of sesion
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
@@ -108,6 +109,11 @@ func createRoomActivity(ctx context.Context, req Request) Response {
 		sess.Room.Info.ID,
 		activity.Message,
 	)
+
+	// create activity in DB
+	// TODO: handle db error
+	db := GetDB(ctx)
+	db.Create(&activity)
 
 	resp := SuccessResponseTo(req, nil)
 	sess.Room.Broadcast(activity)
@@ -172,8 +178,14 @@ func joinRoom(ctx context.Context, req Request) Response {
 				sess.HttpRequest.RemoteAddr,
 				roomToJoin.ID,
 			)
+
+			// load previous history
+			activities := make([]models.RoomActivity, 0, 100)
+			db.Find(&activities, "room_id = ?", roomToJoin.ID)
+
 			sess.Room = NewRoom()
 			sess.Room.Info = roomToJoin
+			sess.Room.history = activities
 			srv.rooms[uint64(roomToJoin.ID)] = sess.Room
 		}
 
