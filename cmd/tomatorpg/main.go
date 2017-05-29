@@ -91,7 +91,7 @@ func main() {
 
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
-	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+	http.Handle("/assets/js/", http.StripPrefix("/assets", fs))
 	http.HandleFunc("/", handlePage(webpackDevHost))
 	http.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
 		url := userauth.GoogleConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
