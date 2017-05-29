@@ -7,36 +7,37 @@ import (
 
 // Router for pubsub requests
 type Router struct {
-	routes   map[string]Handler
-	notFound Handler
+	routes   map[string]Endpoint
+	notFound Endpoint
 }
 
 // NewRouter create and initialize a router
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]Handler),
-		notFound: func(ctx context.Context, req Request) Response {
-			return ErrorResponseTo(req, fmt.Errorf("invalid request"))
+		routes: make(map[string]Endpoint),
+		notFound: func(ctx context.Context, req interface{}) (resp interface{}, err error) {
+			err = fmt.Errorf("invalid request")
+			return
 		},
 	}
 }
 
 // Add route to the router
-func (router *Router) Add(group, entity, method string, handler Handler) {
+func (router *Router) Add(group, entity, method string, ep Endpoint) {
 	router.routes[Route{
 		group:  group,
 		entity: entity,
 		method: method,
-	}.String()] = handler
+	}.String()] = ep
 }
 
 // NotFound sets the route handler if no route matches the request
-func (router *Router) NotFound(handler Handler) {
-	router.notFound = handler
+func (router *Router) NotFound(ep Endpoint) {
+	router.notFound = ep
 }
 
 // ServeRequest serve a specific request for a given route
-func (router *Router) ServeRequest(ctx context.Context, req Request) (resp Response) {
+func (router *Router) ServeRequest(ctx context.Context, req Request) (interface{}, error) {
 	routeToFind := Route{
 		group:  req.Group,
 		entity: req.Entity,
@@ -50,15 +51,14 @@ func (router *Router) ServeRequest(ctx context.Context, req Request) (resp Respo
 
 // Route defines a rule for routing
 type Route struct {
-	group   string
-	entity  string
-	method  string
-	handler Handler
+	group  string
+	entity string
+	method string
 }
 
 func (r Route) String() string {
 	return r.group + "/" + r.entity + "/" + r.method
 }
 
-// Handler of requests through pubsub
-type Handler func(context.Context, Request) Response
+// Endpoint of requests through pubsub
+type Endpoint func(ctx context.Context, request interface{}) (response interface{}, err error)
