@@ -3,7 +3,6 @@ const JSONSocketCmd = 'TOMATO_RPC';
 
 /**
  * ping
- * @param {string} message string to send in the room
  * @return {Object} action suitable to dispatch to pseudo reducer and server
  */
 export function ping() {
@@ -12,6 +11,19 @@ export function ping() {
     tomatorpc: '0.2',
     group: 'pubsub',
     method: 'ping',
+  };
+}
+
+/**
+ * whoami
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function whoami() {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.2',
+    group: 'pubsub',
+    method: 'whoami',
   };
 }
 

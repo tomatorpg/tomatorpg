@@ -28,6 +28,7 @@ func NewServer(db *gorm.DB) *Server {
 	router.Add("pubsub", "", "ping", ping)
 	router.Add("pubsub", "rooms", "replay", replayRoom)
 	router.Add("pubsub", "rooms", "join", joinRoom)
+	router.Add("pubsub", "", "whoami", whoami)
 	return &Server{
 		db:    db,
 		rooms: make(map[uint64]*RoomChannel),

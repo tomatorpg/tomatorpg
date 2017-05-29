@@ -12,6 +12,13 @@ import { setRoomID } from '../stores/SessionStore';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
 import { createRoom, joinRoom, listRooms, replayRoom } from '../transports/JSONSocket';
 
+const ConnectedNav = connect(
+  (state) => {
+    const { session: { user } } = state;
+    return { user };
+  },
+)(Nav);
+
 const ConnectedRooms = connect(
   (state) => {
     const { rooms } = state;
@@ -47,7 +54,7 @@ const ConnectedRoom = connect(
 const App = () => (
   <Router>
     <div>
-      <Nav />
+      <ConnectedNav />
       <main>
         <Route
           exact

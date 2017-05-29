@@ -7,8 +7,8 @@ import { Provider } from 'react-redux';
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
-import sessionReducer from './stores/SessionStore';
-import Transport, { createReducer, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
+import sessionReducer, { setUser } from './stores/SessionStore';
+import Transport, { createReducer, whoami, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
 
 // transport layer for server
@@ -69,6 +69,8 @@ server.subscribe('message', (message) => {
       if (Array.isArray(message.data)) {
         store.dispatch(setRooms(message.data));
       }
+    } else if (entity === '' && method === 'whoami') {
+      store.dispatch(setUser(message.data));
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
     }
@@ -84,6 +86,7 @@ server.subscribe('message', (message) => {
 server.connect(() => {
   // only on first connection, not on re-connect
   store.dispatch(listRooms());
+  store.dispatch(whoami());
 });
 
 ReactDOM.render(

@@ -12,8 +12,10 @@ test('reducer to implement SESSION_TOKEN_SET', () => {
 
 test('reducer to implement SESSION_USER_SET', () => {
   expect(reducer(undefined, setUser({
+    id: 123,
     name: 'Someone',
   })).user).toEqual({
+    id: 123,
     name: 'Someone',
   });
 });

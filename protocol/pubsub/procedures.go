@@ -14,6 +14,23 @@ func ping(ctx context.Context, req Request) Response {
 	return SuccessResponseTo(req, "pong")
 }
 
+func whoami(ctx context.Context, req Request) Response {
+	sess := GetSession(ctx)
+	if sess == nil {
+		return ErrorResponseTo(
+			req,
+			fmt.Errorf("session not found"),
+		)
+	}
+	return SuccessResponseTo(req, struct {
+		ID   uint   `json:"id"`
+		Name string `json:"name"`
+	}{
+		ID:   sess.User.ID,
+		Name: sess.User.Name,
+	})
+}
+
 func createRoom(ctx context.Context, req Request) Response {
 	db := GetDB(ctx)
 	// TODO: read request payload for room data

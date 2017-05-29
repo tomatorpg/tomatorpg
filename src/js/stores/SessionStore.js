@@ -2,6 +2,7 @@ const defaultState = {
   roomID: '',
   token: '',
   user: {
+    id: 0,
     name: 'Visitor',
   },
 };
@@ -50,12 +51,13 @@ const reducer = (state = defaultState, action = {}) => {
       );
     }
     case 'SESSION_USER_SET': {
-      const { user: { name } } = action;
+      const { user: { id, name } } = action;
       return Object.assign(
         {},
         state,
         {
           user: {
+            id,
             name,
           },
         },
