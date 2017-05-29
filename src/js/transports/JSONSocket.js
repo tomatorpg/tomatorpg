@@ -9,7 +9,7 @@ const JSONSocketCmd = 'TOMATO_RPC';
 export function ping() {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'pubsub',
     method: 'ping',
   };
@@ -24,7 +24,7 @@ export function messageInRoom(message) {
   // TODO: Support sending message as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'crud',
     entity: 'roomActivities',
     method: 'create',
@@ -43,7 +43,7 @@ export function messageInRoom(message) {
 export function createCharInRoom(name) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'pubsub',
     entity: 'roomActivities',
     method: 'create',
@@ -62,7 +62,7 @@ export function createCharInRoom(name) {
 export function joinRoom(roomID) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
@@ -78,7 +78,7 @@ export function joinRoom(roomID) {
 export function replayRoom(roomID) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
@@ -95,7 +95,7 @@ export function createRoom(name = '(no name)') {
   // TODO: Support sending message / chat as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'crud',
     entity: 'rooms',
     method: 'create',
@@ -112,7 +112,7 @@ export function listRooms() {
   // TODO: Support sending message / chat as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'crud',
     entity: 'rooms',
     method: 'list',
@@ -127,7 +127,7 @@ export function listRooms() {
 export function deleteRoom(id) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
     group: 'crud',
     entity: 'rooms',
     id,
