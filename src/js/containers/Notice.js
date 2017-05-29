@@ -17,12 +17,12 @@ class Notice extends Component {
 
 Notice.propTypes = {
   visible: PropTypes.bool,
-  children: PropTypes.object,
+  children: PropTypes.array,
 };
 
 Notice.defaultProps = {
   visible: true,
-  children: null,
+  children: [],
 };
 
 export default Notice;
