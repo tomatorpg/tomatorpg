@@ -1,14 +1,16 @@
 const defaultState = {
+  roomID: '',
+  token: '',
   user: {
+    id: 0,
     name: 'Visitor',
   },
-  token: '',
 };
 
-export function setUser(user) {
+export function setRoomID(roomID) {
   return {
-    type: 'SESSION_USER_SET',
-    user,
+    type: 'SESSION_ROOM_ID_SET',
+    roomID,
   };
 }
 
@@ -19,17 +21,22 @@ export function setToken(token) {
   };
 }
 
+export function setUser(user) {
+  return {
+    type: 'SESSION_USER_SET',
+    user,
+  };
+}
+
 const reducer = (state = defaultState, action = {}) => {
   switch (action.type) {
-    case 'SESSION_USER_SET': {
-      const { user: { name } } = action;
+    case 'SESSION_ROOM_ID_SET': {
+      const { roomID } = action;
       return Object.assign(
         {},
         state,
         {
-          user: {
-            name,
-          },
+          roomID,
         },
       );
     }
@@ -40,6 +47,19 @@ const reducer = (state = defaultState, action = {}) => {
         state,
         {
           token,
+        },
+      );
+    }
+    case 'SESSION_USER_SET': {
+      const { user: { id, name } } = action;
+      return Object.assign(
+        {},
+        state,
+        {
+          user: {
+            id,
+            name,
+          },
         },
       );
     }

@@ -3,15 +3,27 @@ const JSONSocketCmd = 'TOMATO_RPC';
 
 /**
  * ping
- * @param {string} message string to send in the room
  * @return {Object} action suitable to dispatch to pseudo reducer and server
  */
 export function ping() {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
-    context: 'session',
-    action: 'ping',
+    tomatorpc: '0.2',
+    group: 'pubsub',
+    method: 'ping',
+  };
+}
+
+/**
+ * whoami
+ * @return {Object} action suitable to dispatch to pseudo reducer and server
+ */
+export function whoami() {
+  return {
+    type: JSONSocketCmd,
+    tomatorpc: '0.2',
+    group: 'pubsub',
+    method: 'whoami',
   };
 }
 
@@ -24,10 +36,10 @@ export function messageInRoom(message) {
   // TODO: Support sending message as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
-    context: 'session',
+    tomatorpc: '0.2',
+    group: 'crud',
     entity: 'roomActivities',
-    action: 'create',
+    method: 'create',
     payload: {
       action: 'message',
       message,
@@ -43,12 +55,12 @@ export function messageInRoom(message) {
 export function createCharInRoom(name) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
-    context: 'session',
+    tomatorpc: '0.2',
+    group: 'pubsub',
     entity: 'roomActivities',
-    action: 'create',
+    method: 'create',
     payload: {
-      type: 'createCharacter',
+      action: 'createCharacter',
       name,
     },
   };
@@ -62,11 +74,11 @@ export function createCharInRoom(name) {
 export function joinRoom(roomID) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
-    context: 'session',
+    tomatorpc: '0.2',
+    group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
-    action: 'join',
+    method: 'join',
   };
 }
 
@@ -78,11 +90,11 @@ export function joinRoom(roomID) {
 export function replayRoom(roomID) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
-    context: 'session',
+    tomatorpc: '0.2',
+    group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
-    action: 'replay',
+    method: 'replay',
   };
 }
 
@@ -95,9 +107,10 @@ export function createRoom(name = '(no name)') {
   // TODO: Support sending message / chat as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
+    group: 'crud',
     entity: 'rooms',
-    action: 'create',
+    method: 'create',
     name,
   };
 }
@@ -111,9 +124,10 @@ export function listRooms() {
   // TODO: Support sending message / chat as character
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
+    group: 'crud',
     entity: 'rooms',
-    action: 'list',
+    method: 'list',
   };
 }
 
@@ -125,10 +139,11 @@ export function listRooms() {
 export function deleteRoom(id) {
   return {
     type: JSONSocketCmd,
-    tomatorpc: '0.1',
+    tomatorpc: '0.2',
+    group: 'crud',
     entity: 'rooms',
     id,
-    action: 'delete',
+    method: 'delete',
   };
 }
 
@@ -167,7 +182,10 @@ class JSONSocket {
 
   constructor(uri) {
     this.uri = uri;
-    this.subscribers = [];
+    this.subscribers = {
+      message: [],
+      open: [],
+    };
     this.ready = false;
     this.pending = [];
   }
@@ -181,11 +199,14 @@ class JSONSocket {
     }
   }
 
-  subscribe(subscriber) {
+  subscribe(eventName, subscriber) {
     if (typeof subscriber !== 'function') {
       throw new Exception('subscriber is not a function');
     }
-    this.subscribers.push(subscriber);
+    if (typeof this.subscribers[eventName] === 'undefined') {
+      throw new Exception(`JSONSocket has no ${eventName} event`);
+    }
+    this.subscribers[eventName].push(subscriber);
   }
 
   connect(callback) {
@@ -202,12 +223,15 @@ class JSONSocket {
         const action = this.pending.shift();
         this.dispatch(action);
       }
+      for (let i = 0; i < this.subscribers.open.length; i += 1) {
+        (async () => this.subscribers.open[i]())();
+      }
     };
     this.webSocket.onmessage = (evt) => {
       try {
         const broadcast = JSON.parse(evt.data);
-        for (let i = 0; i < this.subscribers.length; i += 1) {
-          (async () => this.subscribers[i](broadcast))();
+        for (let i = 0; i < this.subscribers.message.length; i += 1) {
+          (async () => this.subscribers.message[i](broadcast))();
         }
       } catch (err) {
         console.groupCollapsed('Unable to parse broadcast message');

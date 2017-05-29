@@ -7,8 +7,8 @@ import { Provider } from 'react-redux';
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
-import sessionReducer from './stores/SessionStore';
-import Transport, { createReducer, listRooms, resolveWsPath } from './transports/JSONSocket';
+import sessionReducer, { setUser } from './stores/SessionStore';
+import Transport, { createReducer, whoami, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
 
 // transport layer for server
@@ -27,46 +27,56 @@ const store = createStore(
   applyMiddleware(logger),
 );
 
+// join the previous room on re-connect
+server.subscribe('open', () => {
+  const state = store.getState();
+  if (state.session.roomID !== '') {
+    server.dispatch(joinRoom(state.session.roomID));
+    // TODO: replay the history that this user might have missed since disconnected
+  }
+});
+
 // subscribe server broadcast
-server.subscribe((message) => {
-  const { entity = '', data = {} } = message;
-  if (entity === 'roomActivities') {
-    const { action } = data;
-    switch (action) {
-      case 'message': {
-        const { message: messageText, user_id: userID } = data;
-        store.dispatch(addMessage({
-          message: messageText,
-          userID,
-        }));
-        break;
-      }
-      default: {
-        // do nothing
-        console.log('TomatoRPG: received unknown roomActivities', data);
-      }
-    }
-  } else if (message.type === 'response' && message.status === 'success') {
-    if (message.entity === 'rooms') {
-      switch (message.action) {
-        case 'list': {
-          // either create, update, list or delete rooms
-          console.log(message.data);
-          if (Array.isArray(message.data)) {
-            store.dispatch(setRooms(message.data));
-          }
+server.subscribe('message', (message) => {
+  const {
+    entity = '',
+    method = '',
+    message_type: messageType = '',
+    status = '',
+    data = {},
+  } = message;
+
+  if (messageType === 'broadcast') {
+    if (entity === 'roomActivities') {
+      const { action } = data;
+      switch (action) {
+        case 'message': {
+          const { message: messageText, user_id: userID } = data;
+          store.dispatch(addMessage({
+            message: messageText,
+            userID,
+          }));
           break;
         }
-        default:
-          // clear current room messages
-          // store.dispatch(clearMessages());
+        default: {
+          // do nothing
+          console.log('TomatoRPG: received unknown roomActivities', message);
+        }
       }
-    } else {
-      console.log(`TomatoRPG: ${message.entity}.${message.action} ${message.status}`);
     }
-  } else if (message.type === 'response' && message.status === 'error') {
+  } else if (messageType === 'response' && status === 'success') {
+    if (entity === 'rooms' && method === 'list') {
+      if (Array.isArray(message.data)) {
+        store.dispatch(setRooms(message.data));
+      }
+    } else if (entity === '' && method === 'whoami') {
+      store.dispatch(setUser(message.data));
+    } else {
+      console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
+    }
+  } else if (message.message_type === 'response' && message.status === 'error') {
     // TODO: throw error and somehow handles it
-    console.error(`TomatoRPG: ${message.entity}.${message.action} ${message.status}: ${message.error}`);
+    console.error(`TomatoRPG: ${message.entity}.${message.method} ${message.status}: ${message.error}`);
   } else {
     console.log('TomatoRPG: received unknown server message', message);
   }
@@ -76,6 +86,7 @@ server.subscribe((message) => {
 server.connect(() => {
   // only on first connection, not on re-connect
   store.dispatch(listRooms());
+  store.dispatch(whoami());
 });
 
 ReactDOM.render(
