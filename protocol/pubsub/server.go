@@ -1,10 +1,9 @@
 package pubsub
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
-	"strconv"
 
 	"gopkg.in/jose.v1/crypto"
 	"gopkg.in/jose.v1/jws"
@@ -20,10 +19,18 @@ type Server struct {
 	db       *gorm.DB
 	rooms    map[uint64]*RoomChannel
 	upgrader websocket.Upgrader
+	router   *Router
 }
 
 // NewServer create pubsub http handler
 func NewServer(db *gorm.DB) *Server {
+	router := NewRouter()
+	router.Add("crud", "rooms", "create", createRoom)
+	router.Add("crud", "rooms", "list", listRooms)
+	router.Add("crud", "roomActivities", "create", createRoomActivity)
+	router.Add("pubsub", "", "ping", ping)
+	router.Add("pubsub", "rooms", "replay", replayRoom)
+	router.Add("pubsub", "rooms", "join", joinRoom)
 	return &Server{
 		db:    db,
 		rooms: make(map[uint64]*RoomChannel),
@@ -32,6 +39,7 @@ func NewServer(db *gorm.DB) *Server {
 				"tomatorpc-v1",
 			},
 		},
+		router: router,
 	}
 }
 
@@ -48,8 +56,9 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s connected", r.RemoteAddr)
 
 	// context variables
-	var room *RoomChannel
-	var user models.User
+	user := models.User{
+		Name: "Visitor",
+	}
 
 	// load user from token
 	if c, err := r.Cookie("tomatorpg-token"); err != nil {
@@ -70,13 +79,23 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// session to be used and modified by procedures
+	sess := &Session{
+		HttpRequest: r,
+		User:        user,
+		Conn:        ws,
+	}
+
+	// build common procedure context
+	ctx := context.Background()
+	ctx = WithDB(ctx, srv.db)
+	ctx = WithServer(ctx, srv)
+	ctx = WithSession(ctx, sess)
+
 	for {
 
-		jsonRequest := lzjson.NewNode()
-		var rpc Request
-		var activity models.RoomActivity
-
 		// parse as JSON request for flexibility
+		jsonRequest := lzjson.NewNode()
 		err := ws.ReadJSON(&jsonRequest)
 		if err != nil {
 			switch terr := err.(type) {
@@ -89,115 +108,22 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			default:
 				log.Printf("error: %#v", err)
 			}
-			if room != nil {
-				room.Unregister(ws)
+			if sess.Room != nil {
+				sess.Room.Unregister(sess.Conn)
 			}
 			break
 		}
 
 		// parse and execute the RPC
-		jsonRequest.Unmarshal(&rpc)
-		switch rpc.Entity {
-		case "roomActivities":
-			// TODO: validate payload format
-			jsonRequest.Get("payload").Unmarshal(&activity)
-			activity.UserID = user.ID // enforce user session
-			if activity.Action == "" {
-				activity.Action = "message"
-			}
-			log.Printf("roomActivity: user-%d %s in room-%d: %s",
-				activity.UserID,
-				activity.Action,
-				room.Info.ID,
-				activity.Message,
-			)
-			ws.WriteJSON(SuccessResponseTo(rpc, nil))
-			room.Broadcast(activity)
-		case "rooms":
-			if rpc.Method == "create" {
-				newRoom := models.Room{}
-				newRoom.ID = 0 // ensure not injecting ID
-				srv.db.Create(&newRoom)
-				log.Printf("rooms.create: id=%d", newRoom.ID)
-				ws.WriteJSON(SuccessResponseTo(rpc, nil))
-			} else if rpc.Method == "list" {
-				var rooms []models.Room
-				srv.db.Order("created_at desc").Find(&rooms)
-				log.Printf("rooms.list length=%d", len(rooms))
-				ws.WriteJSON(SuccessResponseTo(rpc, rooms))
-			} else if rpc.Method == "replay" {
-				// TODO: this is temp API, should do with CURD
-				if room != nil {
-					log.Printf("rooms.replay: id=%d", room.Info.ID)
-					ws.WriteJSON(SuccessResponseTo(rpc, room.Info.ID))
-					room.Replay(ws)
-				} else {
-					ws.WriteJSON(ErrorResponseTo(
-						rpc,
-						fmt.Errorf("the session is not currently in a room"),
-					))
-				}
-			} else if rpc.Method == "join" {
+		var req Request
+		jsonRequest.Unmarshal(&req)
+		reqCtx := WithJsonReq(ctx, jsonRequest)
 
-				// Find the room
-				idToJoin := uint(0)
-				switch roomIDinJSON := jsonRequest.Get("room_id"); roomIDinJSON.Type() {
-				case lzjson.TypeNumber:
-					idToJoin = uint(roomIDinJSON.Int())
-				case lzjson.TypeString:
-					idParsed, _ := strconv.ParseFloat(roomIDinJSON.String(), 64)
-					idToJoin = uint(idParsed)
-				}
-
-				roomToJoin := models.Room{}
-				srv.db.Find(&roomToJoin, idToJoin)
-				if roomToJoin.ID == idToJoin {
-
-					// unregister client from old room
-					if room != nil {
-						room.Unregister(ws)
-					}
-
-					// attach the client to the room
-					if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
-						log.Printf("%s joinned room %d",
-							r.RemoteAddr,
-							roomToJoin.ID,
-						)
-						room = srv.rooms[uint64(roomToJoin.ID)]
-					} else {
-						log.Printf("%s reactivated and joinned room %d",
-							r.RemoteAddr,
-							roomToJoin.ID,
-						)
-						room = NewRoom()
-						room.Info = roomToJoin
-						srv.rooms[uint64(roomToJoin.ID)] = room
-					}
-
-					// register client to new room
-					room.Register(ws)
-
-					ws.WriteJSON(SuccessResponseTo(rpc, nil))
-				} else {
-					log.Printf("%s failed to join room %d",
-						r.RemoteAddr,
-						roomToJoin.ID,
-					)
-					ws.WriteJSON(ErrorResponseTo(
-						rpc,
-						fmt.Errorf("room (id=%d) not found", idToJoin),
-					))
-				}
-			}
-		case "":
-			if rpc.Method == "" {
-				log.Printf("%s pinged", r.RemoteAddr)
-			}
-			ws.WriteJSON(SuccessResponseTo(rpc, "pong"))
-		default:
-			log.Printf(`error="unknown" rpc call: ip: %s rpc: %#v`,
-				r.RemoteAddr, rpc)
+		// handle all routes similarly
+		resp := srv.router.ServeRequest(reqCtx, req)
+		if err := resp.Err; err != nil {
+			log.Printf("error: %s", err.Error())
 		}
+		ws.WriteJSON(resp)
 	}
 }
