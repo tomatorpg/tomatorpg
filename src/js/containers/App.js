@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
+import { setRoomID } from '../stores/SessionStore';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
 import { createRoom, joinRoom, listRooms, replayRoom } from '../transports/JSONSocket';
 
@@ -37,6 +38,7 @@ const ConnectedRoom = connect(
       // dispatch these events when loading the room
       dispatch(clearMessages());
       dispatch(joinRoom(roomID));
+      dispatch(setRoomID(roomID)); // TODO:need to check if room exists
       dispatch(replayRoom(roomID));
     },
   }),

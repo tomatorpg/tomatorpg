@@ -167,7 +167,10 @@ class JSONSocket {
 
   constructor(uri) {
     this.uri = uri;
-    this.subscribers = [];
+    this.subscribers = {
+      message: [],
+      open: [],
+    };
     this.ready = false;
     this.pending = [];
   }
@@ -181,11 +184,14 @@ class JSONSocket {
     }
   }
 
-  subscribe(subscriber) {
+  subscribe(eventName, subscriber) {
     if (typeof subscriber !== 'function') {
       throw new Exception('subscriber is not a function');
     }
-    this.subscribers.push(subscriber);
+    if (typeof this.subscribers[eventName] === 'undefined') {
+      throw new Exception(`JSONSocket has no ${eventName} event`);
+    }
+    this.subscribers[eventName].push(subscriber);
   }
 
   connect(callback) {
@@ -202,12 +208,15 @@ class JSONSocket {
         const action = this.pending.shift();
         this.dispatch(action);
       }
+      for (let i = 0; i < this.subscribers.open.length; i += 1) {
+        (async () => this.subscribers.open[i]())();
+      }
     };
     this.webSocket.onmessage = (evt) => {
       try {
         const broadcast = JSON.parse(evt.data);
-        for (let i = 0; i < this.subscribers.length; i += 1) {
-          (async () => this.subscribers[i](broadcast))();
+        for (let i = 0; i < this.subscribers.message.length; i += 1) {
+          (async () => this.subscribers.message[i](broadcast))();
         }
       } catch (err) {
         console.groupCollapsed('Unable to parse broadcast message');

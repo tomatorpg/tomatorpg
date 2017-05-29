@@ -8,7 +8,7 @@ import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer from './stores/SessionStore';
-import Transport, { createReducer, listRooms, resolveWsPath } from './transports/JSONSocket';
+import Transport, { createReducer, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
 import '../scss/app.scss';
 
 // transport layer for server
@@ -27,8 +27,17 @@ const store = createStore(
   applyMiddleware(logger),
 );
 
+// join the previous room on re-connect
+server.subscribe('open', () => {
+  const state = store.getState();
+  if (state.session.roomID !== '') {
+    server.dispatch(joinRoom(state.session.roomID));
+    // TODO: replay the history that this user might have missed since disconnected
+  }
+});
+
 // subscribe server broadcast
-server.subscribe((message) => {
+server.subscribe('message', (message) => {
   const { entity = '', data = {} } = message;
   if (entity === 'roomActivities') {
     const { action } = data;
