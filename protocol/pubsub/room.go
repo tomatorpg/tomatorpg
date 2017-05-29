@@ -63,8 +63,9 @@ func (room *RoomChannel) Unregister(client *websocket.Conn) {
 func (room *RoomChannel) Broadcast(activity models.RoomActivity) {
 	// Send the newly received message to the broadcast channel
 	broadcast := Broadcast{
-		Version: "0.1",
+		Version: "0.2",
 		Entity:  "roomActivities",
+		Type:    "broadcast",
 		Data:    activity,
 	}
 	room.broadcast <- broadcast
