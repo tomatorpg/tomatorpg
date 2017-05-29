@@ -15,16 +15,18 @@ func ping(ctx context.Context, req interface{}) (resp interface{}, err error) {
 	return
 }
 
+type whoamiResp struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
 func whoami(ctx context.Context, req interface{}) (resp interface{}, err error) {
 	sess := GetSession(ctx)
 	if sess == nil {
 		err = fmt.Errorf("session not found")
 		return
 	}
-	resp = struct {
-		ID   uint   `json:"id"`
-		Name string `json:"name"`
-	}{
+	resp = whoamiResp{
 		ID:   sess.User.ID,
 		Name: sess.User.Name,
 	}
