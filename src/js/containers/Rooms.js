@@ -22,18 +22,18 @@ class Rooms extends Component {
   render() {
     const { rooms = [] } = this.props;
     return (rooms.length > 0) ? (
-        <div id="rooms">
+      <div id="rooms">
         <Notice>
-          <h1 style={{textAlign:'center'}}> Welcome to Tomato RPG. </h1>
-          <p style={{marginLeft:'1em', marginRight:'1em'}}> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.
-          Quisque tempus, dui a tempor cursus, augue nunc convallis lectus, sit amet egestas nibh libero et nisi. Phasellus tristique consectetur sodales.</p>
+          <h1 style={{ textAlign: 'center' }}> Welcome to Tomato RPG. </h1>
+          <p style={{ marginLeft: '1em', marginRight: '1em' }}> Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.</p>
         </Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <ul className="rooms">
           { rooms.map((room) => {
             const key = `room-${room.id}`;
             const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
-              room.name : `Room ${room.id}`;
+            room.name : `Room ${room.id}`;
             return (
               <li key={key} className="room">
                 <Link className="room-name" to={`/rooms/${room.id}`}>
@@ -49,11 +49,11 @@ class Rooms extends Component {
       </div>
     ) : (
       <div id="rooms">
-      <Notice>
-        <h1 style={{textAlign:'center'}}> Welcome to Tomato RPG. </h1>
-        <p style={{marginLeft:'1em', marginRight:'1em'}}> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.
-        Quisque tempus, dui a tempor cursus, augue nunc convallis lectus, sit amet egestas nibh libero et nisi. Phasellus tristique consectetur sodales.</p>
-      </Notice>
+        <Notice>
+          <h1 style={{ textAlign: 'center' }}> Welcome to Tomato RPG. </h1>
+          <p style={{ marginLeft: '1em', marginRight: '1em' }}> Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            Duis nec dapibus nulla. Etiam eleifend risus leo, eu scelerisque lorem posuere vel.</p>
+        </Notice>
         <button type="button" onClick={evt => this.createRoom(evt)}>Create</button>
         <p className="msg-no-room">There is no room yet.</p>
       </div>
