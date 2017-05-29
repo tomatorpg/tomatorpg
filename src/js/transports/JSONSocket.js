@@ -10,7 +10,7 @@ export function ping() {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
-    context: 'session',
+    group: 'pubsub',
     method: 'ping',
   };
 }
@@ -25,7 +25,7 @@ export function messageInRoom(message) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
-    context: 'session',
+    group: 'crud',
     entity: 'roomActivities',
     method: 'create',
     payload: {
@@ -44,7 +44,7 @@ export function createCharInRoom(name) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
-    context: 'session',
+    group: 'pubsub',
     entity: 'roomActivities',
     method: 'create',
     payload: {
@@ -63,7 +63,7 @@ export function joinRoom(roomID) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
-    context: 'session',
+    group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
     method: 'join',
@@ -79,7 +79,7 @@ export function replayRoom(roomID) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
-    context: 'session',
+    group: 'pubsub',
     entity: 'rooms',
     room_id: roomID,
     method: 'replay',
@@ -96,6 +96,7 @@ export function createRoom(name = '(no name)') {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
+    group: 'crud',
     entity: 'rooms',
     method: 'create',
     name,
@@ -112,6 +113,7 @@ export function listRooms() {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
+    group: 'crud',
     entity: 'rooms',
     method: 'list',
   };
@@ -126,6 +128,7 @@ export function deleteRoom(id) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.1',
+    group: 'crud',
     entity: 'rooms',
     id,
     method: 'delete',
