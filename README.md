@@ -54,13 +54,13 @@ First you need to start a webpack-dev-server to live-reload your JS code
 for development:
 
 ```
-NODE_ENV=development yarn dev
+yarn dev:webpack
 ```
 
 Then you should open another terminal and start the server program. You need
 to inject the webpack dev server path for development. Either:
 ```
-yarn run dev:gin
+yarn dev:gin
 ```
 
 or if you have no need to change the go code, you may test against server
