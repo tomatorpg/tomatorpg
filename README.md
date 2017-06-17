@@ -30,45 +30,69 @@ $(go env GOPATH)/bin/tomatorpg
 
 ## Development
 
-### Golang Server Development
+You may work in the [Frontend Development mode](#frontend-development). Or
+you may work in the [Fullstack Development mode](#fullstack-development).
 
-The server is compatible with [gin](https://github.com/codegangsta/gin) live
-reloader. You should install it for development:
+Depends on what development work are you doing.
+
+
+### Fronend Development
+
+To golang server on development mode, with webpack-dev-server for frontend
+development:
+
+```
+yarn devfront
+```
+
+The frontend javascript / scss code will be monitored and rebuilt by
+webpack-dev-server. The golang server will be using the javascript that
+provided by webpack-dev-server.
+
+
+### Fullstack Development
+
+You should install [gin][gin] live reloader for fullstack development:
 
 ```
 go get -u github.com/codegangsta/gin
 ```
 
-To run golang server with development mode:
-```
-gin -port 8080 -build cmd/tomatorpg
-```
-
-The live reloader will run at http://localhost:8080 by default. And it will
-automatically compile your server code on file changes.
-
-
-### Fronend JS Development
-
-First you need to start a webpack-dev-server to live-reload your JS code
-for development:
+To run development server both for frontend and backend:
 
 ```
-NODE_ENV=development yarn dev
+yarn dev
 ```
 
-Then you should open another terminal and start the server program. You need
-to inject the webpack dev server path for development. Either:
-```
-yarn run dev:gin
-```
+The golang server binary will be monitored, automatically rebuilt by
+[gin][gin] and listen at http://localhost:8080 by default.
 
-or if you have no need to change the go code, you may test against server
-binary with:
+The frontend javascript / scss code will be monitored and rebuilt by
+[webpack-dev-server][webpack-dev-server]. The javascript built assets
+will be served at http://localhost:8081/assets by default.
 
-```
-NODE_ENV=development ./tomatorpg
-```
+[gin]: https://github.com/codegangsta/gin
+[webpack-dev-server]: https://www.npmjs.com/package/webpack-dev-server
+
+
+### Resolve port conflict
+
+If you encountered port conflict, you may use the following env variables:
+
+* `PORT` controls the port for tomatorpg server to bind to (if you're not
+  running the server through [gin][gin]). Default is `8080`.
+
+* `PUBLIC_URL` provides the base public URL of the site to OAuth2. This will
+  be used in the OAuth2 login (i.e. Google / Facebook / Twitter) process only.
+  Default is: `http://localhost:8080`.
+
+* `WEBPACK_DEV_SERVER_HOST` defines the webpack-dev-server public path. If
+  you have set `NODE_ENV` to "`development`", the tomatorpg server will use
+  javascript from this host, instead of its built-in assets.
+
+You may use the `.env` file to override these variables. Or you may directly
+set these variables in your environment.
+
 
 ### `.env` file
 

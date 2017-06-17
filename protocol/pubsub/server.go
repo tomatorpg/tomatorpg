@@ -73,7 +73,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// session to be used and modified by procedures
 	sess := &Session{
-		HttpRequest: r,
+		HTTPRequest: r,
 		User:        user,
 		Conn:        ws,
 	}
@@ -109,13 +109,15 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// parse and execute the RPC
 		var req Request
 		jsonRequest.Unmarshal(&req)
-		reqCtx := WithJsonReq(ctx, jsonRequest)
+		reqCtx := WithJSONReq(ctx, jsonRequest)
 
 		// handle all routes similarly
-		resp := srv.router.ServeRequest(reqCtx, req)
-		if err := resp.Err; err != nil {
+		resp, err := srv.router.ServeRequest(reqCtx, req)
+		if err != nil {
 			log.Printf("error: %s", err.Error())
+			ws.WriteJSON(ErrorResponseTo(req, err))
+			return
 		}
-		ws.WriteJSON(resp)
+		ws.WriteJSON(SuccessResponseTo(req, resp))
 	}
 }
