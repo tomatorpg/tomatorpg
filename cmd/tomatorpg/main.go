@@ -87,7 +87,7 @@ func main() {
 	initDB(db)
 
 	// websocket pubsub server
-	pubsubServer := pubsub.NewServer(db)
+	pubsubServer := pubsub.NewServer(db, make(pubsub.WebsocketChanColl))
 
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))

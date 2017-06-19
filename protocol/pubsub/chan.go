@@ -9,6 +9,19 @@ import (
 	"github.com/tomatorpg/tomatorpg/models"
 )
 
+// ChanColl is the abstraction of a collection of channels
+type ChanColl interface {
+	LoadOrOpen(id uint) Channel
+	Close(id uint)
+}
+
+// Channel is the abstraction for a pubsub channel
+type Channel interface {
+	Subscribe(MessageWriteCloser)
+	Unsubscribe(MessageWriteCloser)
+	BroadcastJSON(v interface{})
+}
+
 // MessageWriter is the abstraction to writing websocket
 // messages into a websocket.
 type MessageWriter interface {
@@ -28,11 +41,22 @@ type MessageWriteCloser interface {
 	io.Closer
 }
 
-// Channel is the abstraction for a pubsub channel
-type Channel interface {
-	Subscribe(MessageWriteCloser)
-	Unsubscribe(MessageWriteCloser)
-	BroadcastJSON(v interface{})
+// WebsocketChanColl implements ChanColl for *WebsocketChannel
+type WebsocketChanColl map[uint]Channel
+
+// LoadOrOpen implements ChanColl
+func (coll WebsocketChanColl) LoadOrOpen(id uint) Channel {
+	if _, ok := coll[id]; !ok {
+		coll[id] = NewRoom()
+	}
+	return coll[id]
+}
+
+// Close implements ChanColl
+func (coll WebsocketChanColl) Close(id uint) {
+	if _, ok := coll[id]; ok {
+		delete(coll, id)
+	}
 }
 
 // WebsocketChannel abstract

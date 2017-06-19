@@ -14,13 +14,13 @@ import (
 // Server implements pubsub websocket server
 type Server struct {
 	db       *gorm.DB
-	chans    map[uint64]Channel
+	chans    ChanColl
 	upgrader websocket.Upgrader
 	router   *Router
 }
 
 // NewServer create pubsub http handler
-func NewServer(db *gorm.DB) *Server {
+func NewServer(db *gorm.DB, coll ChanColl) *Server {
 	router := NewRouter()
 	router.Add("crud", "rooms", "create", createRoom)
 	router.Add("crud", "rooms", "list", listRooms)
@@ -31,7 +31,7 @@ func NewServer(db *gorm.DB) *Server {
 	router.Add("pubsub", "", "whoami", whoami)
 	return &Server{
 		db:    db,
-		chans: make(map[uint64]Channel),
+		chans: coll,
 		upgrader: websocket.Upgrader{
 			Subprotocols: []string{
 				"tomatorpc-v1",
@@ -43,10 +43,7 @@ func NewServer(db *gorm.DB) *Server {
 
 // LoadOrNewChan load or creates a new channel for a given room id
 func (srv *Server) LoadOrNewChan(id uint) Channel {
-	if _, ok := srv.chans[uint64(id)]; !ok {
-		srv.chans[uint64(id)] = NewRoom()
-	}
-	return srv.chans[uint64(id)]
+	return srv.chans.LoadOrOpen(id)
 }
 
 // ServeHTTP implements http.Handler interface
