@@ -59,9 +59,9 @@ func TestRoom_Broadcast(t *testing.T) {
 
 		go func() {
 			// register connection to room
-			room.Register(conn)
+			room.Subscribe(conn)
 			defer conn.Close()
-			defer room.Unregister(conn)
+			defer room.Unsubscribe(conn)
 
 			// dummy loop for connection handle
 			for {
@@ -93,7 +93,7 @@ func TestRoom_Broadcast(t *testing.T) {
 	t.Logf("connection success")
 
 	go func() {
-		room.Broadcast(models.RoomActivity{
+		pubsub.BroadcastActivity(room, models.RoomActivity{
 			Action:  "say",
 			Message: "hello",
 		})
@@ -126,7 +126,7 @@ func TestRoom_Broadcast(t *testing.T) {
 
 }
 
-func TestRoom_Unregister(t *testing.T) {
+func TestRoom_Unsubscribe(t *testing.T) {
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -170,9 +170,9 @@ func TestRoom_Unregister(t *testing.T) {
 
 		go func() {
 			// register connection to room
-			room.Register(conn)
+			room.Subscribe(conn)
 			defer conn.Close()
-			defer room.Unregister(conn)
+			defer room.Unsubscribe(conn)
 
 			// dummy loop for connection handle
 			for {
@@ -204,7 +204,7 @@ func TestRoom_Unregister(t *testing.T) {
 	t.Logf("connection success")
 
 	go func() {
-		room.Broadcast(models.RoomActivity{
+		pubsub.BroadcastActivity(room, models.RoomActivity{
 			Action:  "say",
 			Message: "hello 1",
 		})
@@ -235,10 +235,10 @@ func TestRoom_Unregister(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", want, have)
 	}
 
-	room.Unregister(conn2)
+	room.Unsubscribe(conn2)
 
 	go func() {
-		room.Broadcast(models.RoomActivity{
+		pubsub.BroadcastActivity(room, models.RoomActivity{
 			Action:  "say",
 			Message: "hello 2",
 		})

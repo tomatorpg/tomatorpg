@@ -14,7 +14,7 @@ import (
 // Server implements pubsub websocket server
 type Server struct {
 	db       *gorm.DB
-	rooms    map[uint64]*RoomChannel
+	rooms    map[uint64]Channel
 	upgrader websocket.Upgrader
 	router   *Router
 }
@@ -31,7 +31,7 @@ func NewServer(db *gorm.DB) *Server {
 	router.Add("pubsub", "", "whoami", whoami)
 	return &Server{
 		db:    db,
-		rooms: make(map[uint64]*RoomChannel),
+		rooms: make(map[uint64]Channel),
 		upgrader: websocket.Upgrader{
 			Subprotocols: []string{
 				"tomatorpc-v1",
@@ -101,7 +101,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Printf("error: %#v", err)
 			}
 			if sess.Room != nil {
-				sess.Room.Unregister(sess.Conn)
+				sess.Room.Unsubscribe(sess.Conn)
 			}
 			break
 		}

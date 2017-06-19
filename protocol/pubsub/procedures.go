@@ -55,6 +55,8 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 
 func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
+	db := GetDB(ctx)
+
 	// TODO: this is temp API, should do with CURD
 	//       should rewrite Replay as normal crud listing
 	//       to be independent from websocket
@@ -72,11 +74,29 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 		return
 	}
 
-	log.Printf("rooms.replay: id=%d", sess.Room.Info.ID)
-	resp = sess.Room.Info.ID
+	log.Printf("rooms.replay: id=%d", sess.RoomInfo.ID)
+	resp = sess.RoomInfo.ID
 
-	// side effect
-	sess.Room.Replay(sess.Conn)
+	// replay history (TODO: rewrite as pure CRUD)
+	historyCopy := make([]models.RoomActivity, 0, 100)
+	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
+	if len(historyCopy) > 0 {
+		log.Printf("replay activities to client")
+		for _, activity := range historyCopy {
+			err := sess.Conn.WriteJSON(Broadcast{
+				Version: "0.2",
+				Entity:  "roomActivities",
+				Type:    "broadcast",
+				Data:    activity,
+			})
+			if err != nil {
+				sess.Conn.Close()
+				sess.Room.Unsubscribe(sess.Conn)
+				log.Printf("error: %v", err)
+				break
+			}
+		}
+	}
 	return
 }
 
@@ -106,15 +126,15 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		return
 	}
 	jsonRequest.Get("payload").Unmarshal(&activity)
-	activity.UserID = sess.User.ID      // enforce user session
-	activity.RoomID = sess.Room.Info.ID // enforce room id of sesion
+	activity.UserID = sess.User.ID     // enforce user session
+	activity.RoomID = sess.RoomInfo.ID // enforce room id of sesion
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
 	log.Printf("roomActivity: user-%d %s in room-%d: %s",
 		activity.UserID,
 		activity.Action,
-		sess.Room.Info.ID,
+		sess.RoomInfo.ID,
 		activity.Message,
 	)
 
@@ -124,7 +144,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	db.Create(&activity)
 
 	resp = nil
-	sess.Room.Broadcast(activity)
+	BroadcastActivity(sess.Room, activity)
 	return
 }
 
@@ -172,7 +192,7 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 
 	// unregister client from old room
 	if sess.Room != nil {
-		sess.Room.Unregister(sess.Conn)
+		sess.Room.Unsubscribe(sess.Conn)
 	}
 
 	// attach the client to the room
@@ -181,25 +201,21 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 			sess.HTTPRequest.RemoteAddr,
 			roomToJoin.ID,
 		)
+		sess.RoomInfo = roomToJoin
 		sess.Room = srv.rooms[uint64(roomToJoin.ID)]
 	} else {
 		log.Printf("%s reactivated and joinned room %d",
 			sess.HTTPRequest.RemoteAddr,
 			roomToJoin.ID,
 		)
-
-		// load previous history
-		activities := make([]models.RoomActivity, 0, 100)
-		db.Find(&activities, "room_id = ?", roomToJoin.ID)
-
+		sess.RoomInfo = roomToJoin
 		sess.Room = NewRoom()
-		sess.Room.Info = roomToJoin
-		sess.Room.history = activities
 		srv.rooms[uint64(roomToJoin.ID)] = sess.Room
 	}
 
 	// register client to new room
-	sess.Room.Register(sess.Conn)
-	resp = sess.Room.Info
+	sess.Room.Subscribe(sess.Conn)
+	sess.RoomInfo = roomToJoin
+	resp = sess.RoomInfo
 	return
 }

@@ -1,67 +1,79 @@
 package pubsub
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gorilla/websocket"
 	"github.com/tomatorpg/tomatorpg/models"
 )
 
-// RoomChannel abstract
-type RoomChannel struct {
-	Info      models.Room
-	broadcast chan Broadcast
+// MessageWriter is the abstraction to writing websocket
+// messages into a websocket.
+type MessageWriter interface {
+	// WriteMessage writes raw bytes to websocket
+	// messageType is integer number defined in RFC6455
+	// https://tools.ietf.org/html/rfc6455#section-11.7
+	WriteMessage(messageType int, p []byte) error
+
+	// WriteJSON encode the v value into JSON and send throught websocket
+	WriteJSON(v interface{}) error
+}
+
+// Channel is the abstraction for a pubsub channel
+type Channel interface {
+	Subscribe(MessageWriter)
+	Unsubscribe(MessageWriter)
+	BroadcastJSON(v interface{})
+}
+
+// WebsocketChannel abstract
+type WebsocketChannel struct {
+	broadcast chan interface{}
 	clients   map[*websocket.Conn]bool
-	history   []models.RoomActivity
 }
 
 // NewRoom create a new room channel
-func NewRoom() (room *RoomChannel) {
-	room = &RoomChannel{
-		broadcast: make(chan Broadcast),
+func NewRoom() Channel {
+	room := &WebsocketChannel{
+		broadcast: make(chan interface{}),
 		clients:   make(map[*websocket.Conn]bool),
-		history:   make([]models.RoomActivity, 0, 1024),
 	}
-	go room.Run()
-	return
+	go runRoom(room)
+	return room
 }
 
-// Register the given client to the room broadcast
-func (room *RoomChannel) Register(client *websocket.Conn) {
-	room.clients[client] = true
-}
-
-// Replay play back the action history stack to a newly connected user
-// TODO: allow to playback partially
-func (room *RoomChannel) Replay(client *websocket.Conn) {
-	historyCopy := make([]models.RoomActivity, len(room.history))
-	copy(historyCopy, room.history)
-
-	if len(historyCopy) > 0 {
-		log.Printf("replay activities to client")
-		for _, activity := range historyCopy {
-			err := room.MessageTo(client, Broadcast{
-				Version: "0.2",
-				Entity:  "roomActivities",
-				Type:    "broadcast",
-				Data:    activity,
-			})
-			if err != nil {
-				// break loop
-				log.Printf("error: %v", err)
-				return
-			}
-		}
+// Subscribe the given client to the room broadcast
+func (room *WebsocketChannel) Subscribe(client MessageWriter) {
+	ws, ok := client.(*websocket.Conn)
+	if !ok {
+		panic(fmt.Sprintf(
+			"*WebsocketChannel only allow registering *websocket.Conn, got %#v",
+			client,
+		))
 	}
+	room.clients[ws] = true
 }
 
-// Unregister the given client from the room broadcast
-func (room *RoomChannel) Unregister(client *websocket.Conn) {
-	delete(room.clients, client)
+// Unsubscribe the given client from the room broadcast
+func (room *WebsocketChannel) Unsubscribe(client MessageWriter) {
+	ws, ok := client.(*websocket.Conn)
+	if !ok {
+		panic(fmt.Sprintf(
+			"*WebsocketChannel only allow registering *websocket.Conn, got %#v",
+			client,
+		))
+	}
+	delete(room.clients, ws)
 }
 
-// Broadcast an activity to the room
-func (room *RoomChannel) Broadcast(activity models.RoomActivity) {
+// BroadcastJSON an activity to the room
+func (room *WebsocketChannel) BroadcastJSON(v interface{}) {
+	room.broadcast <- v
+}
+
+// BroadcastActivity broadcast RoomActivity to the given channel
+func BroadcastActivity(ch Channel, activity models.RoomActivity) {
 	// Send the newly received message to the broadcast channel
 	broadcast := Broadcast{
 		Version: "0.2",
@@ -69,31 +81,20 @@ func (room *RoomChannel) Broadcast(activity models.RoomActivity) {
 		Type:    "broadcast",
 		Data:    activity,
 	}
-	room.broadcast <- broadcast
+	ch.BroadcastJSON(broadcast)
 }
 
-// MessageTo specific client
-func (room *RoomChannel) MessageTo(client *websocket.Conn, msg interface{}) (err error) {
-	err = client.WriteJSON(msg)
-	if err != nil {
-		client.Close()
-		room.Unregister(client)
-	}
-	return
-}
-
-// Run starts the main loop to handle room broadcast
-func (room *RoomChannel) Run() {
+func runRoom(room *WebsocketChannel) {
 	for {
 		// Grab the next message from the broadcast channel
 		msg := <-room.broadcast
 
-		// add msg to history
-		room.history = append(room.history, msg.Data)
-
 		// Send it out to every client that is currently connected
 		for client := range room.clients {
-			if err := room.MessageTo(client, msg); err != nil {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				client.Close()
+				room.Unsubscribe(client)
 				log.Printf("error: %v", err)
 			}
 		}
