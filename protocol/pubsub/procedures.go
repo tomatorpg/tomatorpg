@@ -69,7 +69,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 		err = fmt.Errorf("socket not found")
 		return
 	}
-	if sess.Room == nil {
+	if sess.RoomChan == nil {
 		err = fmt.Errorf("the session is not currently in a room")
 		return
 	}
@@ -91,7 +91,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 			})
 			if err != nil {
 				sess.Conn.Close()
-				sess.Room.Unsubscribe(sess.Conn)
+				sess.RoomChan.Unsubscribe(sess.Conn)
 				log.Printf("error: %v", err)
 				break
 			}
@@ -111,7 +111,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		err = fmt.Errorf("socket not found in session")
 		return
 	}
-	if sess.Room == nil {
+	if sess.RoomChan == nil {
 		err = fmt.Errorf("room not found in session")
 		return
 	}
@@ -144,7 +144,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	db.Create(&activity)
 
 	resp = nil
-	BroadcastActivity(sess.Room, activity)
+	BroadcastActivity(sess.RoomChan, activity)
 	return
 }
 
@@ -191,30 +191,16 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 	}
 
 	// unregister client from old room
-	if sess.Room != nil {
-		sess.Room.Unsubscribe(sess.Conn)
+	if sess.RoomChan != nil {
+		sess.RoomChan.Unsubscribe(sess.Conn)
 	}
 
 	// attach the client to the room
-	if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
-		log.Printf("%s joinned room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
-		)
-		sess.RoomInfo = roomToJoin
-		sess.Room = srv.rooms[uint64(roomToJoin.ID)]
-	} else {
-		log.Printf("%s reactivated and joinned room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
-		)
-		sess.RoomInfo = roomToJoin
-		sess.Room = NewRoom()
-		srv.rooms[uint64(roomToJoin.ID)] = sess.Room
-	}
+	sess.RoomInfo = roomToJoin
+	sess.RoomChan = srv.LoadOrNewChan(roomToJoin.ID)
 
 	// register client to new room
-	sess.Room.Subscribe(sess.Conn)
+	sess.RoomChan.Subscribe(sess.Conn)
 	sess.RoomInfo = roomToJoin
 	resp = sess.RoomInfo
 	return

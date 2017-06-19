@@ -23,7 +23,7 @@ const (
 // for a pubsub websocket sesions
 type Session struct {
 	HTTPRequest *http.Request
-	Room        Channel
+	RoomChan    Channel
 	RoomInfo    models.Room
 	User        models.User
 	Conn        *websocket.Conn
