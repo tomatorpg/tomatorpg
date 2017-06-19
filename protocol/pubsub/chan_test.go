@@ -16,6 +16,30 @@ import (
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 )
 
+func TestWebsocketChanColl(t *testing.T) {
+	chColl := make(pubsub.WebsocketChanColl)
+	ch1 := chColl.LoadOrOpen(1)
+	ch1b := chColl.LoadOrOpen(1)
+	ch2 := chColl.LoadOrOpen(2)
+
+	// expect to have 2 different channel by 2 id
+	if notWant, have := ch1, ch2; notWant == have {
+		t.Errorf("unexpectedly got %#v", have)
+	}
+
+	// expect to have the same channel by same id
+	if want, have := ch1, ch1b; want != have {
+		t.Errorf("expected %#v, got %#v", want, have)
+	}
+
+	// expect to be a new channel after close
+	chColl.Close(1)
+	ch1c := chColl.LoadOrOpen(1)
+	if notWant, have := ch1, ch1c; notWant == have {
+		t.Errorf("unexpectedly got %#v", have)
+	}
+}
+
 func TestWebsocketChan_Broadcast(t *testing.T) {
 
 	upgrader := websocket.Upgrader{
@@ -274,17 +298,17 @@ func TestWebsocketChan_Unsubscribe(t *testing.T) {
 	}
 }
 
-type errMsgWriter int
+type nilMsgWriter int
 
-func (w errMsgWriter) WriteMessage(messageType int, p []byte) error {
+func (w nilMsgWriter) WriteMessage(messageType int, p []byte) error {
 	return nil
 }
 
-func (w errMsgWriter) WriteJSON(v interface{}) error {
+func (w nilMsgWriter) WriteJSON(v interface{}) error {
 	return nil
 }
 
-func (w errMsgWriter) Close() error {
+func (w nilMsgWriter) Close() error {
 	return nil
 }
 
@@ -301,7 +325,7 @@ func TestWebsocketChan_Subscribe_err(t *testing.T) {
 		}
 	}()
 	wsChan := pubsub.NewWebsocketChan()
-	wsChan.Subscribe(errMsgWriter(0))
+	wsChan.Subscribe(nilMsgWriter(0))
 }
 
 func TestWebsocketChan_Unsubscribe_err(t *testing.T) {
@@ -317,5 +341,5 @@ func TestWebsocketChan_Unsubscribe_err(t *testing.T) {
 		}
 	}()
 	wsChan := pubsub.NewWebsocketChan()
-	wsChan.Unsubscribe(errMsgWriter(0))
+	wsChan.Unsubscribe(nilMsgWriter(0))
 }
