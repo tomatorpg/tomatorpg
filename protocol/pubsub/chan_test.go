@@ -73,7 +73,7 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 			t.Logf("[req: %d] cannot upgrade: %v", reqID, err)
 			errResp := pubsub.Response{
 				Status: "error",
-				Err:    err,
+				Err:    err.Error(),
 			}
 			if b, err := json.Marshal(errResp); err != nil {
 				http.Error(w, fmt.Sprintf("%s", b), http.StatusInternalServerError)
@@ -184,7 +184,7 @@ func TestWebsocketChan_Unsubscribe(t *testing.T) {
 			t.Logf("[req: %d] cannot upgrade: %v", reqID, err)
 			errResp := pubsub.Response{
 				Status: "error",
-				Err:    err,
+				Err:    err.Error(),
 			}
 			if b, err := json.Marshal(errResp); err != nil {
 				http.Error(w, fmt.Sprintf("%s", b), http.StatusInternalServerError)
