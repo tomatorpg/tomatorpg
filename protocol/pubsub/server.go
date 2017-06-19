@@ -33,11 +33,6 @@ func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
 	}
 }
 
-// LoadOrNewChan load or creates a new channel for a given room id
-func (srv *Server) LoadOrNewChan(id uint) Channel {
-	return srv.chans.LoadOrOpen(id)
-}
-
 // ServeHTTP implements http.Handler interface
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Upgrade initial GET request to a websocket

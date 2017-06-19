@@ -2,11 +2,35 @@ package pubsub
 
 import (
 	"fmt"
+	"log"
 	"testing"
 )
 
+type dummyChanColl map[uint]Channel
+
+func (coll dummyChanColl) LoadOrOpen(id uint) Channel {
+	if _, ok := coll[id]; !ok {
+		coll[id] = newDummyChannel()
+	}
+	return coll[id]
+}
+
+func (coll dummyChanColl) Close(id uint) {
+
+}
+
 type dummyChannel struct {
-	conns map[MessageWriteCloser]bool
+	broadcast chan interface{}
+	conns     map[MessageWriteCloser]bool
+}
+
+func newDummyChannel() Channel {
+	ch := &dummyChannel{
+		broadcast: make(chan interface{}),
+		conns:     make(map[MessageWriteCloser]bool),
+	}
+	ch.run()
+	return ch
 }
 
 func (ch *dummyChannel) Subscribe(conn MessageWriteCloser) {
@@ -20,6 +44,23 @@ func (ch *dummyChannel) Unsubscribe(conn MessageWriteCloser) {
 func (ch *dummyChannel) BroadcastJSON(v interface{}) {
 	for conn := range ch.conns {
 		conn.WriteJSON(v)
+	}
+}
+
+func (ch *dummyChannel) run() {
+	for {
+		// Grab the next message from the broadcast channel
+		msg := <-ch.broadcast
+
+		// Send it out to every client that is currently connected
+		for client := range ch.conns {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				client.Close()
+				ch.Unsubscribe(client)
+				log.Printf("error: %v", err)
+			}
+		}
 	}
 }
 

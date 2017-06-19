@@ -191,13 +191,13 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 	}
 
 	// unregister client from old room
-	if sess.RoomChan != nil {
+	if sess.RoomChan != nil && sess.Conn != nil {
 		sess.RoomChan.Unsubscribe(sess.Conn)
 	}
 
 	// attach the client to the room
 	sess.RoomInfo = roomToJoin
-	sess.RoomChan = srv.LoadOrNewChan(roomToJoin.ID)
+	sess.RoomChan = srv.chans.LoadOrOpen(roomToJoin.ID)
 
 	// register client to new room
 	sess.RoomChan.Subscribe(sess.Conn)

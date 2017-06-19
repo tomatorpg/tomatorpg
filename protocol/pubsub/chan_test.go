@@ -16,6 +16,103 @@ import (
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 )
 
+type nilMsgWriter int
+
+func (w nilMsgWriter) WriteMessage(messageType int, p []byte) error {
+	return nil
+}
+
+func (w nilMsgWriter) WriteJSON(v interface{}) error {
+	return nil
+}
+
+func (w nilMsgWriter) Close() error {
+	return nil
+}
+
+type dummyChanColl map[uint]pubsub.Channel
+
+func (coll dummyChanColl) LoadOrOpen(id uint) pubsub.Channel {
+	if _, ok := coll[id]; !ok {
+		coll[id] = newDummyChannel()
+	}
+	return coll[id]
+}
+
+func (coll dummyChanColl) Close(id uint) {
+
+}
+
+type dummyChannel struct {
+	broadcast chan interface{}
+	conns     map[pubsub.MessageWriteCloser]bool
+}
+
+func newDummyChannel() pubsub.Channel {
+	ch := &dummyChannel{
+		broadcast: make(chan interface{}),
+		conns:     make(map[pubsub.MessageWriteCloser]bool),
+	}
+	ch.run()
+	return ch
+}
+
+func (ch *dummyChannel) Subscribe(conn pubsub.MessageWriteCloser) {
+	ch.conns[conn] = true
+}
+
+func (ch *dummyChannel) Unsubscribe(conn pubsub.MessageWriteCloser) {
+	delete(ch.conns, conn)
+}
+
+func (ch *dummyChannel) BroadcastJSON(v interface{}) {
+	for conn := range ch.conns {
+		conn.WriteJSON(v)
+	}
+}
+
+func (ch *dummyChannel) run() {
+	for {
+		// Grab the next message from the broadcast channel
+		msg := <-ch.broadcast
+
+		// Send it out to every client that is currently connected
+		for client := range ch.conns {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				client.Close()
+				ch.Unsubscribe(client)
+				log.Printf("error: %v", err)
+			}
+		}
+	}
+}
+
+type dummyWriter struct {
+	lastMsg      interface{}
+	lastMsgType  int
+	lastMsgBytes []byte
+}
+
+func (w *dummyWriter) WriteMessage(messageType int, p []byte) error {
+	w.lastMsg = nil
+	w.lastMsgType = messageType
+	w.lastMsgBytes = make([]byte, len(p))
+	copy(w.lastMsgBytes, p)
+	return nil
+}
+
+func (w *dummyWriter) WriteJSON(v interface{}) error {
+	w.lastMsg = v
+	w.lastMsgType = -1
+	w.lastMsgBytes = make([]byte, 0)
+	return nil
+}
+
+func (w *dummyWriter) Close() error {
+	return nil
+}
+
 func TestWebsocketChanColl(t *testing.T) {
 	chColl := make(pubsub.WebsocketChanColl)
 	ch1 := chColl.LoadOrOpen(1)
@@ -296,20 +393,6 @@ func TestWebsocketChan_Unsubscribe(t *testing.T) {
 	}():
 		t.Logf("conn2 received unexpected message: %#v", recieved)
 	}
-}
-
-type nilMsgWriter int
-
-func (w nilMsgWriter) WriteMessage(messageType int, p []byte) error {
-	return nil
-}
-
-func (w nilMsgWriter) WriteJSON(v interface{}) error {
-	return nil
-}
-
-func (w nilMsgWriter) Close() error {
-	return nil
 }
 
 func TestWebsocketChan_Subscribe_err(t *testing.T) {
