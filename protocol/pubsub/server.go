@@ -20,15 +20,7 @@ type Server struct {
 }
 
 // NewServer create pubsub http handler
-func NewServer(db *gorm.DB, coll ChanColl) *Server {
-	router := NewRouter()
-	router.Add("crud", "rooms", "create", createRoom)
-	router.Add("crud", "rooms", "list", listRooms)
-	router.Add("crud", "roomActivities", "create", createRoomActivity)
-	router.Add("pubsub", "", "ping", ping)
-	router.Add("pubsub", "rooms", "replay", replayRoom)
-	router.Add("pubsub", "rooms", "join", joinRoom)
-	router.Add("pubsub", "", "whoami", whoami)
+func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
 	return &Server{
 		db:    db,
 		chans: coll,

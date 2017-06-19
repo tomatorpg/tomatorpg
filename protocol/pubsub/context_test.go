@@ -30,7 +30,11 @@ func TestContext(t *testing.T) {
 			return
 		}
 
-		srv := pubsub.NewServer(db, make(pubsub.WebsocketChanColl))
+		srv := pubsub.NewServer(
+			db,
+			make(pubsub.WebsocketChanColl),
+			pubsub.RPCs(),
+		)
 
 		ctx = context.Background()
 		ctx = pubsub.WithSession(ctx, sess)
