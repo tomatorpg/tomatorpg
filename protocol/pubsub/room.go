@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -20,10 +21,17 @@ type MessageWriter interface {
 	WriteJSON(v interface{}) error
 }
 
+// MessageWriteCloser is the abstraction to writing websocket
+// messages into a websocket with a close method.
+type MessageWriteCloser interface {
+	MessageWriter
+	io.Closer
+}
+
 // Channel is the abstraction for a pubsub channel
 type Channel interface {
-	Subscribe(MessageWriter)
-	Unsubscribe(MessageWriter)
+	Subscribe(MessageWriteCloser)
+	Unsubscribe(MessageWriteCloser)
 	BroadcastJSON(v interface{})
 }
 
@@ -44,11 +52,12 @@ func NewRoom() Channel {
 }
 
 // Subscribe the given client to the room broadcast
-func (room *WebsocketChannel) Subscribe(client MessageWriter) {
+func (room *WebsocketChannel) Subscribe(client MessageWriteCloser) {
 	ws, ok := client.(*websocket.Conn)
 	if !ok {
 		panic(fmt.Sprintf(
-			"*WebsocketChannel only allow registering *websocket.Conn, got %#v",
+			"*WebsocketChannel only allow registering *websocket.Conn, got %T(%#v)",
+			client,
 			client,
 		))
 	}
@@ -56,11 +65,12 @@ func (room *WebsocketChannel) Subscribe(client MessageWriter) {
 }
 
 // Unsubscribe the given client from the room broadcast
-func (room *WebsocketChannel) Unsubscribe(client MessageWriter) {
+func (room *WebsocketChannel) Unsubscribe(client MessageWriteCloser) {
 	ws, ok := client.(*websocket.Conn)
 	if !ok {
 		panic(fmt.Sprintf(
-			"*WebsocketChannel only allow registering *websocket.Conn, got %#v",
+			"*WebsocketChannel only allow unregistering *websocket.Conn, got %T(%#v)",
+			client,
 			client,
 		))
 	}
@@ -84,6 +94,16 @@ func BroadcastActivity(ch Channel, activity models.RoomActivity) {
 	ch.BroadcastJSON(broadcast)
 }
 
+func messageTo(room Channel, client MessageWriteCloser, msg interface{}) (err error) {
+	err = client.WriteJSON(msg)
+	if err != nil {
+		client.Close()
+		room.Unsubscribe(client)
+		log.Printf("error: %v", err)
+	}
+	return
+}
+
 func runRoom(room *WebsocketChannel) {
 	for {
 		// Grab the next message from the broadcast channel
@@ -91,12 +111,7 @@ func runRoom(room *WebsocketChannel) {
 
 		// Send it out to every client that is currently connected
 		for client := range room.clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				client.Close()
-				room.Unsubscribe(client)
-				log.Printf("error: %v", err)
-			}
+			messageTo(room, client, msg)
 		}
 	}
 }

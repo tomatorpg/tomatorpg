@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -271,4 +272,50 @@ func TestRoom_Unsubscribe(t *testing.T) {
 	}():
 		t.Logf("conn2 received unexpected message: %#v", recieved)
 	}
+}
+
+type errMsgWriter int
+
+func (w errMsgWriter) WriteMessage(messageType int, p []byte) error {
+	return nil
+}
+
+func (w errMsgWriter) WriteJSON(v interface{}) error {
+	return nil
+}
+
+func (w errMsgWriter) Close() error {
+	return nil
+}
+
+func TestRoom_Subscribe_err(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Errorf("expected error, got nil")
+			return
+		}
+		if prefix, have := "*WebsocketChannel only allow registering *websocket.Conn", r.(string); !strings.HasPrefix(have, prefix) {
+			t.Errorf("expected error message to have prefix %#v, got %#v",
+				prefix, have)
+		}
+	}()
+	room := pubsub.NewRoom()
+	room.Subscribe(errMsgWriter(0))
+}
+
+func TestRoom_Unsubscribe_err(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Errorf("expected error, got nil")
+			return
+		}
+		if prefix, have := "*WebsocketChannel only allow unregistering *websocket.Conn", r.(string); !strings.HasPrefix(have, prefix) {
+			t.Errorf("expected error message to have prefix %#v, got %#v",
+				prefix, have)
+		}
+	}()
+	room := pubsub.NewRoom()
+	room.Unsubscribe(errMsgWriter(0))
 }
