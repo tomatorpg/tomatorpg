@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-restit/lzjson"
-	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
 )
@@ -26,7 +25,7 @@ type Session struct {
 	RoomChan    Channel
 	RoomInfo    models.Room
 	User        models.User
-	Conn        *websocket.Conn
+	Conn        MessageWriteCloser
 }
 
 // WithSession stores a websocket connection reference into context

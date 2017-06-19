@@ -29,7 +29,7 @@ func newDummyChannel() Channel {
 		broadcast: make(chan interface{}),
 		conns:     make(map[MessageWriteCloser]bool),
 	}
-	ch.run()
+	go ch.run()
 	return ch
 }
 
