@@ -15,9 +15,10 @@
     "devfront": "npm-run-all --parallel devfront:build-and-run dev:webpack",
     "devfront:run": "NODE_ENV=development ./tomatorpg",
     "devfront:build-and-run": "npm-run-all build:golang:server devfront:run",
-    "test": "npm-run-all test:jest test:eslint",
+    "test": "npm-run-all test:jest test:eslint test:go",
     "test:eslint": "eslint ./src/js ./__tests__",
-    "test:jest": "jest"
+    "test:jest": "jest",
+    "test:go": "go test -v -cover ./assets/... ./cmd/... ./models/... ./protocol/... ./userauth/..."
   },
   "author": "",
   "license": "ISC",
