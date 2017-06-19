@@ -16,15 +16,15 @@ import (
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 )
 
-func TestRoom_Broadcast(t *testing.T) {
+func TestWebsocketChan_Broadcast(t *testing.T) {
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 
-	// dummy room to test
-	room := pubsub.NewRoom()
+	// dummy chan to test
+	wsChan := pubsub.NewWebsocketChan()
 
 	// serial generator
 	serial := func() func() int {
@@ -59,10 +59,10 @@ func TestRoom_Broadcast(t *testing.T) {
 		}
 
 		go func() {
-			// register connection to room
-			room.Subscribe(conn)
+			// register connection to chan
+			wsChan.Subscribe(conn)
 			defer conn.Close()
-			defer room.Unsubscribe(conn)
+			defer wsChan.Unsubscribe(conn)
 
 			// dummy loop for connection handle
 			for {
@@ -94,7 +94,7 @@ func TestRoom_Broadcast(t *testing.T) {
 	t.Logf("connection success")
 
 	go func() {
-		pubsub.BroadcastActivity(room, models.RoomActivity{
+		pubsub.BroadcastActivity(wsChan, models.RoomActivity{
 			Action:  "say",
 			Message: "hello",
 		})
@@ -127,15 +127,15 @@ func TestRoom_Broadcast(t *testing.T) {
 
 }
 
-func TestRoom_Unsubscribe(t *testing.T) {
+func TestWebsocketChan_Unsubscribe(t *testing.T) {
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 
-	// dummy room to test
-	room := pubsub.NewRoom()
+	// dummy chan to test
+	wsChan := pubsub.NewWebsocketChan()
 
 	// serial generator
 	serial := func() func() int {
@@ -171,9 +171,9 @@ func TestRoom_Unsubscribe(t *testing.T) {
 
 		go func() {
 			// register connection to room
-			room.Subscribe(conn)
+			wsChan.Subscribe(conn)
 			defer conn.Close()
-			defer room.Unsubscribe(conn)
+			defer wsChan.Unsubscribe(conn)
 
 			// dummy loop for connection handle
 			for {
@@ -205,7 +205,7 @@ func TestRoom_Unsubscribe(t *testing.T) {
 	t.Logf("connection success")
 
 	go func() {
-		pubsub.BroadcastActivity(room, models.RoomActivity{
+		pubsub.BroadcastActivity(wsChan, models.RoomActivity{
 			Action:  "say",
 			Message: "hello 1",
 		})
@@ -236,10 +236,10 @@ func TestRoom_Unsubscribe(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", want, have)
 	}
 
-	room.Unsubscribe(conn2)
+	wsChan.Unsubscribe(conn2)
 
 	go func() {
-		pubsub.BroadcastActivity(room, models.RoomActivity{
+		pubsub.BroadcastActivity(wsChan, models.RoomActivity{
 			Action:  "say",
 			Message: "hello 2",
 		})
@@ -288,7 +288,7 @@ func (w errMsgWriter) Close() error {
 	return nil
 }
 
-func TestRoom_Subscribe_err(t *testing.T) {
+func TestWebsocketChan_Subscribe_err(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -300,11 +300,11 @@ func TestRoom_Subscribe_err(t *testing.T) {
 				prefix, have)
 		}
 	}()
-	room := pubsub.NewRoom()
-	room.Subscribe(errMsgWriter(0))
+	wsChan := pubsub.NewWebsocketChan()
+	wsChan.Subscribe(errMsgWriter(0))
 }
 
-func TestRoom_Unsubscribe_err(t *testing.T) {
+func TestWebsocketChan_Unsubscribe_err(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -316,6 +316,6 @@ func TestRoom_Unsubscribe_err(t *testing.T) {
 				prefix, have)
 		}
 	}()
-	room := pubsub.NewRoom()
-	room.Unsubscribe(errMsgWriter(0))
+	wsChan := pubsub.NewWebsocketChan()
+	wsChan.Unsubscribe(errMsgWriter(0))
 }

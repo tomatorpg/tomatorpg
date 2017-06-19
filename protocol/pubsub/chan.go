@@ -47,7 +47,7 @@ type WebsocketChanColl map[uint]Channel
 // LoadOrOpen implements ChanColl
 func (coll WebsocketChanColl) LoadOrOpen(id uint) Channel {
 	if _, ok := coll[id]; !ok {
-		coll[id] = NewRoom()
+		coll[id] = NewWebsocketChan()
 	}
 	return coll[id]
 }
@@ -59,24 +59,24 @@ func (coll WebsocketChanColl) Close(id uint) {
 	}
 }
 
-// WebsocketChannel abstract
-type WebsocketChannel struct {
+// WebsocketChan abstract
+type WebsocketChan struct {
 	broadcast chan interface{}
 	clients   map[*websocket.Conn]bool
 }
 
-// NewRoom create a new room channel
-func NewRoom() Channel {
-	room := &WebsocketChannel{
+// NewWebsocketChan create a new room channel
+func NewWebsocketChan() Channel {
+	wsChan := &WebsocketChan{
 		broadcast: make(chan interface{}),
 		clients:   make(map[*websocket.Conn]bool),
 	}
-	go runRoom(room)
-	return room
+	go wsChan.run()
+	return wsChan
 }
 
 // Subscribe the given client to the room broadcast
-func (room *WebsocketChannel) Subscribe(client MessageWriteCloser) {
+func (wsChan *WebsocketChan) Subscribe(client MessageWriteCloser) {
 	ws, ok := client.(*websocket.Conn)
 	if !ok {
 		panic(fmt.Sprintf(
@@ -85,11 +85,11 @@ func (room *WebsocketChannel) Subscribe(client MessageWriteCloser) {
 			client,
 		))
 	}
-	room.clients[ws] = true
+	wsChan.clients[ws] = true
 }
 
 // Unsubscribe the given client from the room broadcast
-func (room *WebsocketChannel) Unsubscribe(client MessageWriteCloser) {
+func (wsChan *WebsocketChan) Unsubscribe(client MessageWriteCloser) {
 	ws, ok := client.(*websocket.Conn)
 	if !ok {
 		panic(fmt.Sprintf(
@@ -98,12 +98,24 @@ func (room *WebsocketChannel) Unsubscribe(client MessageWriteCloser) {
 			client,
 		))
 	}
-	delete(room.clients, ws)
+	delete(wsChan.clients, ws)
 }
 
 // BroadcastJSON an activity to the room
-func (room *WebsocketChannel) BroadcastJSON(v interface{}) {
-	room.broadcast <- v
+func (wsChan *WebsocketChan) BroadcastJSON(v interface{}) {
+	wsChan.broadcast <- v
+}
+
+func (wsChan *WebsocketChan) run() {
+	for {
+		// Grab the next message from the broadcast channel
+		msg := <-wsChan.broadcast
+
+		// Send it out to every client that is currently connected
+		for client := range wsChan.clients {
+			messageTo(wsChan, client, msg)
+		}
+	}
 }
 
 // BroadcastActivity broadcast RoomActivity to the given channel
@@ -118,24 +130,12 @@ func BroadcastActivity(ch Channel, activity models.RoomActivity) {
 	ch.BroadcastJSON(broadcast)
 }
 
-func messageTo(room Channel, client MessageWriteCloser, msg interface{}) (err error) {
+func messageTo(wsChan Channel, client MessageWriteCloser, msg interface{}) (err error) {
 	err = client.WriteJSON(msg)
 	if err != nil {
 		client.Close()
-		room.Unsubscribe(client)
+		wsChan.Unsubscribe(client)
 		log.Printf("error: %v", err)
 	}
 	return
-}
-
-func runRoom(room *WebsocketChannel) {
-	for {
-		// Grab the next message from the broadcast channel
-		msg := <-room.broadcast
-
-		// Send it out to every client that is currently connected
-		for client := range room.clients {
-			messageTo(room, client, msg)
-		}
-	}
 }
