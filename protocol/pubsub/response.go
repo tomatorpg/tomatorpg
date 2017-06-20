@@ -8,7 +8,7 @@ type Response struct {
 	Entity  string      `json:"entity"`
 	Method  string      `json:"method"`
 	Status  string      `json:"status,omitempty"`
-	Err     error       `json:"error,omitempty"`
+	Err     string      `json:"error,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
@@ -36,6 +36,6 @@ func ErrorResponseTo(req Request, err error) Response {
 		Entity:  req.Entity,
 		Method:  req.Method,
 		Status:  "error",
-		Err:     err,
+		Err:     err.Error(),
 	}
 }

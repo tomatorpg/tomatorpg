@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
-	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
 )
@@ -23,9 +23,11 @@ const (
 // for a pubsub websocket sesions
 type Session struct {
 	HTTPRequest *http.Request
-	Room        *RoomChannel
+	RoomChan    Channel
+	RoomInfo    models.Room
 	User        models.User
-	Conn        *websocket.Conn
+	Conn        MessageWriteCloser
+	Logger      kitlog.Logger
 }
 
 // WithSession stores a websocket connection reference into context

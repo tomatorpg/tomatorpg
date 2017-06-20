@@ -2,7 +2,6 @@ package main
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/tomatorpg/tomatorpg/assets"
@@ -16,12 +15,12 @@ func init() {
 
 	tplBin, err := assets.Asset("html/index.html")
 	if err != nil {
-		log.Fatalf("cannot find index.html in assets")
+		logger.Fatalf("cannot find index.html in assets")
 	}
 
 	tplIndex, err = template.New("index").Parse(string(tplBin))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 }

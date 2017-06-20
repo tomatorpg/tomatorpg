@@ -11,6 +11,19 @@ type Router struct {
 	notFound Endpoint
 }
 
+// RPCs create a new Router with predefined set of routes
+func RPCs() (router *Router) {
+	router = NewRouter()
+	router.Add("crud", "rooms", "create", createRoom)
+	router.Add("crud", "rooms", "list", listRooms)
+	router.Add("crud", "roomActivities", "create", createRoomActivity)
+	router.Add("pubsub", "", "ping", ping)
+	router.Add("pubsub", "rooms", "replay", replayRoom)
+	router.Add("pubsub", "rooms", "join", joinRoom)
+	router.Add("pubsub", "", "whoami", whoami)
+	return
+}
+
 // NewRouter create and initialize a router
 func NewRouter() *Router {
 	return &Router{

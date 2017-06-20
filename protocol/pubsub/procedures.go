@@ -3,11 +3,11 @@ package pubsub
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/go-restit/lzjson"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 func ping(ctx context.Context, req interface{}) (resp interface{}, err error) {
@@ -35,11 +35,16 @@ func whoami(ctx context.Context, req interface{}) (resp interface{}, err error) 
 
 func createRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 	db := GetDB(ctx)
+	logger := utils.GetLogger(ctx)
 	// TODO: read request payload for room data
 	newRoom := models.Room{}
 	newRoom.ID = 0 // ensure not injecting ID
 	db.Create(&newRoom)
-	log.Printf("rooms.create: id=%d", newRoom.ID)
+	logger.Log(
+		"at", "info",
+		"action", "rooms.create",
+		"room.id", newRoom.ID,
+	)
 	resp = newRoom
 	return
 }
@@ -48,12 +53,20 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	db := GetDB(ctx)
 	var rooms []models.Room
 	db.Order("created_at desc").Find(&rooms)
-	log.Printf("rooms.list length=%d", len(rooms))
+	logger := utils.GetLogger(ctx)
+	logger.Log(
+		"at", "info",
+		"action", "rooms.list",
+		"len(room)", len(rooms),
+	)
 	resp = rooms
 	return
 }
 
 func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
+
+	db := GetDB(ctx)
+	logger := utils.GetLogger(ctx)
 
 	// TODO: this is temp API, should do with CURD
 	//       should rewrite Replay as normal crud listing
@@ -67,20 +80,53 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 		err = fmt.Errorf("socket not found")
 		return
 	}
-	if sess.Room == nil {
+	if sess.RoomChan == nil {
 		err = fmt.Errorf("the session is not currently in a room")
 		return
 	}
 
-	log.Printf("rooms.replay: id=%d", sess.Room.Info.ID)
-	resp = sess.Room.Info.ID
+	logger.Log(
+		"at", "info",
+		"action", "rooms.replay",
+		"room.id", sess.RoomInfo.ID,
+	)
+	resp = sess.RoomInfo.ID
 
-	// side effect
-	sess.Room.Replay(sess.Conn)
+	// replay history (TODO: rewrite as pure CRUD)
+	historyCopy := make([]models.RoomActivity, 0, 100)
+	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
+	if len(historyCopy) > 0 {
+		logger.Log(
+			"at", "info",
+			"message", "start replaying activities to client",
+			"room.id", sess.RoomInfo.ID,
+		)
+		for _, activity := range historyCopy {
+			err := sess.Conn.WriteJSON(Broadcast{
+				Version: "0.2",
+				Entity:  "roomActivities",
+				Type:    "broadcast",
+				Data:    activity,
+			})
+			if err != nil {
+				sess.Conn.Close()
+				sess.RoomChan.Unsubscribe(sess.Conn)
+				logger.Log(
+					"at", "info",
+					"message", "error writing JSON to socket",
+					"error", err.Error(),
+				)
+				break
+			}
+		}
+	}
 	return
 }
 
 func createRoomActivity(ctx context.Context, req interface{}) (resp interface{}, err error) {
+
+	logger := utils.GetLogger(ctx)
+
 	// TODO: rewrite to pure crud
 	sess := GetSession(ctx)
 	if sess == nil {
@@ -91,7 +137,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		err = fmt.Errorf("socket not found in session")
 		return
 	}
-	if sess.Room == nil {
+	if sess.RoomChan == nil {
 		err = fmt.Errorf("room not found in session")
 		return
 	}
@@ -106,16 +152,18 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		return
 	}
 	jsonRequest.Get("payload").Unmarshal(&activity)
-	activity.UserID = sess.User.ID      // enforce user session
-	activity.RoomID = sess.Room.Info.ID // enforce room id of sesion
+	activity.UserID = sess.User.ID     // enforce user session
+	activity.RoomID = sess.RoomInfo.ID // enforce room id of sesion
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
-	log.Printf("roomActivity: user-%d %s in room-%d: %s",
-		activity.UserID,
-		activity.Action,
-		sess.Room.Info.ID,
-		activity.Message,
+	logger.Log(
+		"at", "info",
+		"action", "roomActivity.create",
+		"user.id", activity.UserID,
+		"room.id", sess.RoomInfo.ID,
+		"activity.action", activity.Action,
+		"activity.message", activity.Message,
 	)
 
 	// create activity in DB
@@ -124,11 +172,13 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	db.Create(&activity)
 
 	resp = nil
-	sess.Room.Broadcast(activity)
+	BroadcastActivity(sess.RoomChan, activity)
 	return
 }
 
 func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
+
+	logger := utils.GetLogger(ctx)
 
 	sess := GetSession(ctx)
 	if sess == nil {
@@ -162,44 +212,27 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 	roomToJoin := models.Room{}
 	db.Find(&roomToJoin, idToJoin)
 	if roomToJoin.ID != idToJoin {
-		log.Printf("%s failed to join room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
+		logger.Log(
+			"at", "info",
+			"message", "failed to join room, room not found",
+			"room.id", roomToJoin.ID,
 		)
 		err = fmt.Errorf("room (id=%d) not found", idToJoin)
 		return
 	}
 
 	// unregister client from old room
-	if sess.Room != nil {
-		sess.Room.Unregister(sess.Conn)
+	if sess.RoomChan != nil && sess.Conn != nil {
+		sess.RoomChan.Unsubscribe(sess.Conn)
 	}
 
 	// attach the client to the room
-	if _, ok := srv.rooms[uint64(roomToJoin.ID)]; ok {
-		log.Printf("%s joinned room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
-		)
-		sess.Room = srv.rooms[uint64(roomToJoin.ID)]
-	} else {
-		log.Printf("%s reactivated and joinned room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
-		)
-
-		// load previous history
-		activities := make([]models.RoomActivity, 0, 100)
-		db.Find(&activities, "room_id = ?", roomToJoin.ID)
-
-		sess.Room = NewRoom()
-		sess.Room.Info = roomToJoin
-		sess.Room.history = activities
-		srv.rooms[uint64(roomToJoin.ID)] = sess.Room
-	}
+	sess.RoomInfo = roomToJoin
+	sess.RoomChan = srv.chans.LoadOrOpen(roomToJoin.ID)
 
 	// register client to new room
-	sess.Room.Register(sess.Conn)
-	resp = sess.Room.Info
+	sess.RoomChan.Subscribe(sess.Conn)
+	sess.RoomInfo = roomToJoin
+	resp = sess.RoomInfo
 	return
 }

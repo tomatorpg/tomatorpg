@@ -11,17 +11,26 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 var port uint64
 var webpackDevHost string
 var publicURL string
+
+var logger *log.Logger
+
+func init() {
+	// TODO; detect if is in heroku, skip timestamp
+	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
+}
 
 func init() {
 
@@ -30,13 +39,13 @@ func init() {
 	// load dot env file, if exists
 	if _, err = os.Stat(".env"); err == nil {
 		if err = godotenv.Load(); err != nil {
-			log.Fatalf("Unable to load .env, %#v", err)
+			logger.Fatalf("Unable to load .env, %#v", err)
 		}
 	}
 
 	// load port
 	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {
-		log.Fatalf("Unable to parse PORT: %s", err.Error())
+		logger.Fatalf("Unable to parse PORT: %s", err.Error())
 		return
 	}
 	if port == 0 {
@@ -87,21 +96,26 @@ func main() {
 	initDB(db)
 
 	// websocket pubsub server
-	pubsubServer := pubsub.NewServer(db)
+	pubsubServer := pubsub.NewServer(
+		db,
+		make(pubsub.WebsocketChanColl),
+		pubsub.RPCs(),
+	)
 
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
-	http.Handle("/assets/js/", http.StripPrefix("/assets", fs))
-	http.HandleFunc("/", handlePage(webpackDevHost))
-	http.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
+	mainServer := http.NewServeMux()
+	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
+	mainServer.HandleFunc("/", handlePage(webpackDevHost))
+	mainServer.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
 		url := userauth.GoogleConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
 		http.Redirect(w, r, url, http.StatusFound)
 	})
-	http.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
+	mainServer.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
 		userauth.GoogleConfig(publicURL),
 		db,
 	))
-	http.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
+	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "tomatorpg-token",
 			Path:    "/",
@@ -109,11 +123,18 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
-	http.Handle("/api.v1", pubsubServer)
+	mainServer.Handle("/api.v1", pubsubServer)
 
-	log.Printf("listen to port %d", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	applyMiddlewares := utils.Chain(
+		utils.ApplyRequestID,
+		utils.ApplyLogger(func() kitlog.Logger {
+			return kitlog.NewLogfmtLogger(utils.LogWriter(logger))
+		}),
+	)
+
+	logger.Printf("listen to port %d", port)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), applyMiddlewares(mainServer))
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		logger.Fatal("ListenAndServe: ", err)
 	}
 }

@@ -1,37 +1,29 @@
 package pubsub
 
 import (
-	"context"
-	"log"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 // Server implements pubsub websocket server
 type Server struct {
 	db       *gorm.DB
-	rooms    map[uint64]*RoomChannel
+	chans    ChanColl
 	upgrader websocket.Upgrader
 	router   *Router
 }
 
 // NewServer create pubsub http handler
-func NewServer(db *gorm.DB) *Server {
-	router := NewRouter()
-	router.Add("crud", "rooms", "create", createRoom)
-	router.Add("crud", "rooms", "list", listRooms)
-	router.Add("crud", "roomActivities", "create", createRoomActivity)
-	router.Add("pubsub", "", "ping", ping)
-	router.Add("pubsub", "rooms", "replay", replayRoom)
-	router.Add("pubsub", "rooms", "join", joinRoom)
-	router.Add("pubsub", "", "whoami", whoami)
+func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
 	return &Server{
 		db:    db,
-		rooms: make(map[uint64]*RoomChannel),
+		chans: coll,
 		upgrader: websocket.Upgrader{
 			Subprotocols: []string{
 				"tomatorpc-v1",
@@ -43,15 +35,34 @@ func NewServer(db *gorm.DB) *Server {
 
 // ServeHTTP implements http.Handler interface
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	// inherit logger from server
+	logger := utils.GetLogger(r.Context())
+
 	// Upgrade initial GET request to a websocket
 	ws, err := srv.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Fatal(err)
+		logger.Log(
+			"at", "error",
+			"message", "unable to upgrade to websocket connection",
+			"error", err.Error(),
+		)
+		respEnc := json.NewEncoder(w)
+		w.WriteHeader(http.StatusBadRequest)
+		respEnc.Encode(map[string]interface{}{
+			"status":       "error",
+			"error":        "unable to upgrade to websocket connection",
+			"errorDetails": err.Error(),
+		})
+		return
 	}
 	// Make sure we close the connection when the function returns
 	defer ws.Close()
 
-	log.Printf("%s connected", r.RemoteAddr)
+	logger.Log(
+		"at", "info",
+		"message", "websocket connection upgrade success",
+	)
 
 	// context variables
 	user := models.User{
@@ -60,14 +71,30 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// load user from token
 	if c, err := r.Cookie("tomatorpg-token"); err != nil {
-		log.Printf("error reading token from cookie: %s", err.Error())
+		if err != http.ErrNoCookie {
+			// if not a no cookie error
+			logger.Log(
+				"at", "error",
+				"message", "error reading token from cookie",
+				"error", err.Error(),
+			)
+		}
 	} else if token, err := ParseToken("abcdef", c.Value); err != nil {
-		log.Printf("error parsing / validating token: %s", err.Error())
+		logger.Log(
+			"at", "error",
+			"message", "error parsing / validating token",
+			"error", err.Error(),
+		)
 	} else {
 		// get user of the id
 		srv.db.Find(&user, token.Claims().Get("id"))
 		if user.ID != 0 {
-			log.Printf("user loaded: id=%d name=%#v", user.ID, user.Name)
+			logger.Log(
+				"at", "info",
+				"message", "user loaded",
+				"user_id", user.ID,
+				"user_name", user.Name,
+			)
 		}
 	}
 
@@ -76,10 +103,11 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		HTTPRequest: r,
 		User:        user,
 		Conn:        ws,
+		Logger:      logger,
 	}
 
 	// build common procedure context
-	ctx := context.Background()
+	ctx := r.Context()
 	ctx = WithDB(ctx, srv.db)
 	ctx = WithServer(ctx, srv)
 	ctx = WithSession(ctx, sess)
@@ -92,16 +120,28 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			switch terr := err.(type) {
 			case *websocket.CloseError:
-				log.Printf("%s disconnected: %d %s",
-					r.RemoteAddr,
-					terr.Code,
-					terr.Text,
-				)
+				if terr.Code == 1001 {
+					sess.Logger.Log(
+						"at", "info",
+						"message", "websocket disconnected",
+					)
+				} else {
+					sess.Logger.Log(
+						"at", "warning",
+						"message", "websocket disconnected",
+						"errCode", terr.Code,
+						"error", terr.Text,
+					)
+				}
 			default:
-				log.Printf("error: %#v", err)
+				sess.Logger.Log(
+					"at", "error",
+					"message", "error reading JSON",
+					"error", err.Error(),
+				)
 			}
-			if sess.Room != nil {
-				sess.Room.Unregister(sess.Conn)
+			if sess.RoomChan != nil {
+				sess.RoomChan.Unsubscribe(sess.Conn)
 			}
 			break
 		}
@@ -114,7 +154,11 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// handle all routes similarly
 		resp, err := srv.router.ServeRequest(reqCtx, req)
 		if err != nil {
-			log.Printf("error: %s", err.Error())
+			sess.Logger.Log(
+				"at", "error",
+				"message", "server request error",
+				"error", err.Error(),
+			)
 			ws.WriteJSON(ErrorResponseTo(req, err))
 			return
 		}
