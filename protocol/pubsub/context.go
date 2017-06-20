@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"net/http"
-	"os"
 
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
@@ -18,7 +17,6 @@ const (
 	jsonReqKey
 	sessionKey
 	srvKey
-	logCtxKey
 )
 
 // Session store connection session information
@@ -73,19 +71,5 @@ func WithServer(parent context.Context, srv *Server) context.Context {
 // GetServer get the server struct reference from context
 func GetServer(ctx context.Context) (srv *Server) {
 	srv, _ = ctx.Value(srvKey).(*Server)
-	return
-}
-
-// WithLogContext stores a go-kit log *Context to a context.Context
-func WithLogContext(parent context.Context, logCtx kitlog.Logger) context.Context {
-	return context.WithValue(parent, logCtxKey, logCtx)
-}
-
-// GetLogContext get the go-kit log *Context from the context.Context
-func GetLogContext(ctx context.Context) (logCtx kitlog.Logger) {
-	logCtx, _ = ctx.Value(logCtxKey).(kitlog.Logger)
-	if logCtx == nil {
-		logCtx = kitlog.NewLogfmtLogger(os.Stdout)
-	}
 	return
 }

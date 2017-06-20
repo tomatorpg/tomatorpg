@@ -1,4 +1,4 @@
-package pubsub_test
+package utils_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	kitlog "github.com/go-kit/kit/log"
-	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 func TestChain(t *testing.T) {
@@ -28,7 +28,7 @@ func TestChain(t *testing.T) {
 			inner.ServeHTTP(w, r)
 		})
 	}
-	srv := pubsub.Chain(m1, m2)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := utils.Chain(m1, m2)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// do nothing
 	}))
 
@@ -63,16 +63,16 @@ func TestApplyRequestID(t *testing.T) {
 		t.Errorf("got no request id")
 		fmt.Fprintf(w, "failed")
 	}))
-	srv = pubsub.ApplyRequestID(srv)
+	srv = utils.ApplyRequestID(srv)
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://foobar.com/hello/world", nil)
 	srv.ServeHTTP(w, r)
 }
 
-func TestApplyContextLog(t *testing.T) {
+func TestApplyLogger(t *testing.T) {
 	srv := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := pubsub.GetLogContext(r.Context())
+		logger := utils.GetLogger(r.Context())
 		if logger != nil {
 			logger.Log("hello", "world")
 			fmt.Fprintf(w, "success")
@@ -85,7 +85,7 @@ func TestApplyContextLog(t *testing.T) {
 	newLogger := func() kitlog.Logger {
 		return kitlog.NewLogfmtLogger(buf)
 	}
-	srv = pubsub.ApplyContextLog(newLogger)(srv)
+	srv = utils.ApplyLogger(newLogger)(srv)
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://foobar.com/hello/world", nil)

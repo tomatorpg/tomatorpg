@@ -1,4 +1,4 @@
-package pubsub
+package utils
 
 import (
 	"math/rand"
@@ -46,9 +46,9 @@ func ApplyRequestID(inner http.Handler) http.Handler {
 	})
 }
 
-// ApplyContextLog logs access and also provide the kitlog context to inner
+// ApplyLogger logs access and also provide the kitlog context to inner
 // http handler
-func ApplyContextLog(newlogger func() kitlog.Logger) HTTPMiddleware {
+func ApplyLogger(newlogger func() kitlog.Logger) HTTPMiddleware {
 	return func(inner http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -68,7 +68,7 @@ func ApplyContextLog(newlogger func() kitlog.Logger) HTTPMiddleware {
 				"remote_addr", r.RemoteAddr,
 			)
 
-			inner.ServeHTTP(w, r.WithContext(WithLogContext(r.Context(), logger)))
+			inner.ServeHTTP(w, r.WithContext(WithLogger(r.Context(), logger)))
 		})
 	}
 }

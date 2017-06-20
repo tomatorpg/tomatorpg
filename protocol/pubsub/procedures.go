@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-restit/lzjson"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 func ping(ctx context.Context, req interface{}) (resp interface{}, err error) {
@@ -34,7 +35,7 @@ func whoami(ctx context.Context, req interface{}) (resp interface{}, err error) 
 
 func createRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 	db := GetDB(ctx)
-	logger := GetLogContext(ctx)
+	logger := utils.GetLogger(ctx)
 	// TODO: read request payload for room data
 	newRoom := models.Room{}
 	newRoom.ID = 0 // ensure not injecting ID
@@ -52,7 +53,7 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	db := GetDB(ctx)
 	var rooms []models.Room
 	db.Order("created_at desc").Find(&rooms)
-	logger := GetLogContext(ctx)
+	logger := utils.GetLogger(ctx)
 	logger.Log(
 		"at", "info",
 		"action", "rooms.list",
@@ -65,7 +66,7 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
 	db := GetDB(ctx)
-	logger := GetLogContext(ctx)
+	logger := utils.GetLogger(ctx)
 
 	// TODO: this is temp API, should do with CURD
 	//       should rewrite Replay as normal crud listing
@@ -124,7 +125,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 
 func createRoomActivity(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
-	logger := GetLogContext(ctx)
+	logger := utils.GetLogger(ctx)
 
 	// TODO: rewrite to pure crud
 	sess := GetSession(ctx)
@@ -177,7 +178,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 
 func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
-	logger := GetLogContext(ctx)
+	logger := utils.GetLogger(ctx)
 
 	sess := GetSession(ctx)
 	if sess == nil {

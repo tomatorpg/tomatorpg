@@ -122,9 +122,9 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
-	applyMiddlewares := pubsub.Chain(
-		pubsub.ApplyRequestID,
-		pubsub.ApplyContextLog(func() kitlog.Logger {
+	applyMiddlewares := utils.Chain(
+		utils.ApplyRequestID,
+		utils.ApplyLogger(func() kitlog.Logger {
 			return kitlog.NewLogfmtLogger(utils.LogWriter(logger))
 		}),
 	)

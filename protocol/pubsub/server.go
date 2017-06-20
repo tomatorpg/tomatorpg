@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 // Server implements pubsub websocket server
@@ -36,7 +37,7 @@ func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// inherit logger from server
-	logger := GetLogContext(r.Context())
+	logger := utils.GetLogger(r.Context())
 
 	// Upgrade initial GET request to a websocket
 	ws, err := srv.upgrader.Upgrade(w, r, nil)
