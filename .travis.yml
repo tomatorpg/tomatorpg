@@ -19,5 +19,5 @@ script:
   - go test -v ./models
   - go test -v ./protocol/**/*
   - go test -v ./userauth
-  - go test -v ./utils/**/*
+  - go test -v ./utils
   - yarn test
