@@ -20,4 +20,4 @@ script:
   - go test -v ./protocol/**/*
   - go test -v ./userauth
   - go test -v ./utils
-  - yarn test
+  - yarn test:js

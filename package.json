@@ -16,6 +16,7 @@
     "devfront:run": "NODE_ENV=development ./tomatorpg",
     "devfront:build-and-run": "npm-run-all build:golang:server devfront:run",
     "test": "npm-run-all test:jest test:eslint test:go",
+    "test:js": "npm-run-all test:jest test:eslint",
     "test:eslint": "eslint ./src/js ./__tests__",
     "test:jest": "jest",
     "test:go": "go test -v -cover ./assets/... ./cmd/... ./models/... ./protocol/... ./userauth/... ./utils/..."
