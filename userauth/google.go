@@ -10,13 +10,13 @@ import (
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
-	"gopkg.in/jose.v1/crypto"
 	"gopkg.in/jose.v1/jws"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
+// GoogleConfig provides OAuth2 config for google login
 func GoogleConfig(hostURL string) *oauth2.Config {
 	return &oauth2.Config{
 		RedirectURL:  hostURL + "/oauth2/google/callback",
@@ -30,7 +30,8 @@ func GoogleConfig(hostURL string) *oauth2.Config {
 	}
 }
 
-func GoogleCallback(conf *oauth2.Config, db *gorm.DB) http.HandlerFunc {
+// GoogleCallback returns a http.Handler for Google account login handing
+func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		token, err := conf.Exchange(oauth2.NoContext, code)
@@ -107,22 +108,22 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB) http.HandlerFunc {
 		log.Printf("user found or created: %#v", authUser)
 
 		// Create JWS claims with the user info
+		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
 		claims := jws.Claims{}
 		claims.Set("id", authUser.ID)
 		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost")
-
-		jwtToken := jws.NewJWT(claims, crypto.SigningMethodHS256)
-		serializedToken, _ := jwtToken.Serialize([]byte("abcdef"))
+		claims.SetAudience("localhost") // TODO: set audience correctly
+		claims.SetExpiration(expires)
+		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "tomatorpg-token",
-			Value:    string(serializedToken),
-			Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days
+			Value:    tokenStr,
+			Expires:  expires,
 			Path:     "/",
 			HttpOnly: true,
 		})
 
-		http.Redirect(w, r, "http://localhost:8080", http.StatusFound)
+		http.Redirect(w, r, hostURL, http.StatusFound)
 	}
 }

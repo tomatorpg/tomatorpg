@@ -24,6 +24,7 @@ import (
 var port uint64
 var webpackDevHost string
 var publicURL string
+var jwtSecret string
 
 var logger *log.Logger
 
@@ -64,6 +65,11 @@ func init() {
 	if publicURL = os.Getenv("PUBLIC_URL"); publicURL == "" {
 		publicURL = "http://localhost:8080"
 	}
+
+	// load JWT secret
+	if jwtSecret = os.Getenv("JWT_SECRET"); jwtSecret == "" {
+		jwtSecret = "abcdef"
+	}
 }
 
 /**
@@ -100,6 +106,7 @@ func main() {
 		db,
 		make(pubsub.WebsocketChanColl),
 		pubsub.RPCs(),
+		jwtSecret,
 	)
 
 	// Create a simple file server
@@ -114,6 +121,8 @@ func main() {
 	mainServer.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
 		userauth.GoogleConfig(publicURL),
 		db,
+		jwtSecret,
+		publicURL,
 	))
 	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{

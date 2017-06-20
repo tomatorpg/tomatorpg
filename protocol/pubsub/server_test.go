@@ -63,6 +63,7 @@ func TestServer_ServeHTTP(t *testing.T) {
 		db,
 		make(pubsub.WebsocketChanColl), // TODO: use dummy chan coll
 		rtr,
+		"abcde",
 	))
 	defer srv.Close()
 

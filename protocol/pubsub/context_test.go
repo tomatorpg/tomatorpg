@@ -34,6 +34,7 @@ func TestContext(t *testing.T) {
 			db,
 			make(pubsub.WebsocketChanColl),
 			pubsub.RPCs(),
+			"abcde",
 		)
 
 		ctx = context.Background()

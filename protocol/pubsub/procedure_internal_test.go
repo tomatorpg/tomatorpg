@@ -155,6 +155,7 @@ func TestProcedure_joinRoom(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	conn := &dummyWriter{}
 	sess := &Session{
@@ -206,6 +207,7 @@ func TestProcedure_joinRoom_withprevchan(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	conn := &dummyWriter{}
 	sess := &Session{
@@ -295,6 +297,7 @@ func TestProcedure_joinRoom_strid(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	conn := &dummyWriter{}
 	sess := &Session{
@@ -346,6 +349,7 @@ func TestProcedure_joinRoom_nosession(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 
 	reqJSON := lzjson.NewNode()
@@ -390,6 +394,7 @@ func TestProcedure_joinRoom_nosocket(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	sess := &Session{
 		HTTPRequest: &http.Request{},
@@ -438,6 +443,7 @@ func TestProcedure_joinRoom_norequest(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	conn := &dummyWriter{}
 	sess := &Session{
@@ -483,6 +489,7 @@ func TestProcedure_joinRoom_notfound(t *testing.T) {
 		db,
 		coll,
 		NewRouter(),
+		"abcde",
 	)
 	conn := &dummyWriter{}
 	sess := &Session{
