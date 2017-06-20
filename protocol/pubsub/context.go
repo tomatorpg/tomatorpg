@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"net/http"
+	"os"
 
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
@@ -83,5 +84,8 @@ func WithLogContext(parent context.Context, logCtx kitlog.Logger) context.Contex
 // GetLogContext get the go-kit log *Context from the context.Context
 func GetLogContext(ctx context.Context) (logCtx kitlog.Logger) {
 	logCtx, _ = ctx.Value(logCtxKey).(kitlog.Logger)
+	if logCtx == nil {
+		logCtx = kitlog.NewLogfmtLogger(os.Stdout)
+	}
 	return
 }

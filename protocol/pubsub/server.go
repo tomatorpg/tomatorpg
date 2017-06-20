@@ -1,12 +1,9 @@
 package pubsub
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
-	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
@@ -40,9 +37,6 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// inherit logger from server
 	logger := GetLogContext(r.Context())
-	if logger == nil {
-		logger = kitlog.NewLogfmtLogger(os.Stdout)
-	}
 
 	// Upgrade initial GET request to a websocket
 	ws, err := srv.upgrader.Upgrade(w, r, nil)
@@ -110,7 +104,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// build common procedure context
-	ctx := context.Background()
+	ctx := r.Context()
 	ctx = WithDB(ctx, srv.db)
 	ctx = WithServer(ctx, srv)
 	ctx = WithSession(ctx, sess)

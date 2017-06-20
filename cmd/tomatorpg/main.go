@@ -25,6 +25,13 @@ var port uint64
 var webpackDevHost string
 var publicURL string
 
+var logger *log.Logger
+
+func init() {
+	// TODO; detect if is in heroku, skip timestamp
+	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
+}
+
 func init() {
 
 	var err error
@@ -32,13 +39,13 @@ func init() {
 	// load dot env file, if exists
 	if _, err = os.Stat(".env"); err == nil {
 		if err = godotenv.Load(); err != nil {
-			log.Fatalf("Unable to load .env, %#v", err)
+			logger.Fatalf("Unable to load .env, %#v", err)
 		}
 	}
 
 	// load port
 	if port, err = strconv.ParseUint(os.Getenv("PORT"), 10, 16); os.Getenv("PORT") != "" && err != nil {
-		log.Fatalf("Unable to parse PORT: %s", err.Error())
+		logger.Fatalf("Unable to parse PORT: %s", err.Error())
 		return
 	}
 	if port == 0 {
@@ -115,16 +122,17 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
 	applyMiddlewares := pubsub.Chain(
 		pubsub.ApplyRequestID,
-		pubsub.ApplyContextLog(kitlog.NewLogfmtLogger(utils.LogWriter(logger))),
+		pubsub.ApplyContextLog(func() kitlog.Logger {
+			return kitlog.NewLogfmtLogger(utils.LogWriter(logger))
+		}),
 	)
 	http.Handle("/api.v1", applyMiddlewares(pubsubServer))
 
-	log.Printf("listen to port %d", port)
+	logger.Printf("listen to port %d", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		logger.Fatal("ListenAndServe: ", err)
 	}
 }

@@ -1,15 +1,13 @@
 package main
 
 import (
-	"log"
-
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
 )
 
 func initDB(db *gorm.DB) {
 
-	log.Printf("initDB")
+	logger.Printf("initDB")
 
 	// Migrate the schema
 	db.AutoMigrate(&models.User{})

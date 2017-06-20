@@ -48,11 +48,12 @@ func ApplyRequestID(inner http.Handler) http.Handler {
 
 // ApplyContextLog logs access and also provide the kitlog context to inner
 // http handler
-func ApplyContextLog(logger kitlog.Logger) HTTPMiddleware {
+func ApplyContextLog(newlogger func() kitlog.Logger) HTTPMiddleware {
 	return func(inner http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			reqID := r.Header.Get("X-Request-ID")
+			logger := newlogger()
 			logger = kitlog.With(
 				logger,
 				"request_id", reqID,
@@ -60,6 +61,7 @@ func ApplyContextLog(logger kitlog.Logger) HTTPMiddleware {
 
 			// access log
 			logger.Log(
+				"at", "info",
 				"method", r.Method,
 				"path", r.URL.Path,
 				"protocol", r.URL.Scheme,

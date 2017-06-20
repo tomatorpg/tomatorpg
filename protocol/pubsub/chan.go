@@ -3,7 +3,6 @@ package pubsub
 import (
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/gorilla/websocket"
 	"github.com/tomatorpg/tomatorpg/models"
@@ -113,7 +112,8 @@ func (wsChan *WebsocketChan) run() {
 
 		// Send it out to every client that is currently connected
 		for client := range wsChan.clients {
-			messageTo(wsChan, client, msg)
+			err := messageTo(wsChan, client, msg)
+			_ = err // TODO: record / log the error by another channel
 		}
 	}
 }
@@ -135,7 +135,6 @@ func messageTo(wsChan Channel, client MessageWriteCloser, msg interface{}) (err 
 	if err != nil {
 		client.Close()
 		wsChan.Unsubscribe(client)
-		log.Printf("error: %v", err)
 	}
 	return
 }

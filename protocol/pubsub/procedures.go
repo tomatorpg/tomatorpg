@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/go-restit/lzjson"
@@ -35,11 +34,15 @@ func whoami(ctx context.Context, req interface{}) (resp interface{}, err error) 
 
 func createRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 	db := GetDB(ctx)
+	logger := GetLogContext(ctx)
 	// TODO: read request payload for room data
 	newRoom := models.Room{}
 	newRoom.ID = 0 // ensure not injecting ID
 	db.Create(&newRoom)
-	log.Printf("rooms.create: id=%d", newRoom.ID)
+	logger.Log(
+		"action", "rooms.create",
+		"room.id", newRoom.ID,
+	)
 	resp = newRoom
 	return
 }
@@ -48,7 +51,11 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	db := GetDB(ctx)
 	var rooms []models.Room
 	db.Order("created_at desc").Find(&rooms)
-	log.Printf("rooms.list length=%d", len(rooms))
+	logger := GetLogContext(ctx)
+	logger.Log(
+		"action", "rooms.list",
+		"len(room)", len(rooms),
+	)
 	resp = rooms
 	return
 }
@@ -56,6 +63,7 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
 	db := GetDB(ctx)
+	logger := GetLogContext(ctx)
 
 	// TODO: this is temp API, should do with CURD
 	//       should rewrite Replay as normal crud listing
@@ -74,14 +82,20 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 		return
 	}
 
-	log.Printf("rooms.replay: id=%d", sess.RoomInfo.ID)
+	logger.Log(
+		"action", "rooms.replay",
+		"room.id", sess.RoomInfo.ID,
+	)
 	resp = sess.RoomInfo.ID
 
 	// replay history (TODO: rewrite as pure CRUD)
 	historyCopy := make([]models.RoomActivity, 0, 100)
 	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
 	if len(historyCopy) > 0 {
-		log.Printf("replay activities to client")
+		logger.Log(
+			"message", "start replaying activities to client",
+			"room.id", sess.RoomInfo.ID,
+		)
 		for _, activity := range historyCopy {
 			err := sess.Conn.WriteJSON(Broadcast{
 				Version: "0.2",
@@ -92,7 +106,10 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 			if err != nil {
 				sess.Conn.Close()
 				sess.RoomChan.Unsubscribe(sess.Conn)
-				log.Printf("error: %v", err)
+				logger.Log(
+					"message", "error writing JSON to socket",
+					"error", err.Error(),
+				)
 				break
 			}
 		}
@@ -101,6 +118,9 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 }
 
 func createRoomActivity(ctx context.Context, req interface{}) (resp interface{}, err error) {
+
+	logger := GetLogContext(ctx)
+
 	// TODO: rewrite to pure crud
 	sess := GetSession(ctx)
 	if sess == nil {
@@ -131,11 +151,12 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
-	log.Printf("roomActivity: user-%d %s in room-%d: %s",
-		activity.UserID,
-		activity.Action,
-		sess.RoomInfo.ID,
-		activity.Message,
+	logger.Log(
+		"message", "roomActivity",
+		"user.id", activity.UserID,
+		"room.id", sess.RoomInfo.ID,
+		"activity.action", activity.Action,
+		"activity.message", activity.Message,
 	)
 
 	// create activity in DB
@@ -149,6 +170,8 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 }
 
 func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
+
+	logger := GetLogContext(ctx)
 
 	sess := GetSession(ctx)
 	if sess == nil {
@@ -182,9 +205,9 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 	roomToJoin := models.Room{}
 	db.Find(&roomToJoin, idToJoin)
 	if roomToJoin.ID != idToJoin {
-		log.Printf("%s failed to join room %d",
-			sess.HTTPRequest.RemoteAddr,
-			roomToJoin.ID,
+		logger.Log(
+			"message", "failed to join room, room not found",
+			"room.id", roomToJoin.ID,
 		)
 		err = fmt.Errorf("room (id=%d) not found", idToJoin)
 		return

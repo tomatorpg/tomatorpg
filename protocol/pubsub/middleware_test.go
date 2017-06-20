@@ -82,8 +82,10 @@ func TestApplyContextLog(t *testing.T) {
 		fmt.Fprintf(w, "failed")
 	}))
 	buf := bytes.NewBuffer(make([]byte, 256))
-	logger := kitlog.NewLogfmtLogger(buf)
-	srv = pubsub.ApplyContextLog(logger)(srv)
+	newLogger := func() kitlog.Logger {
+		return kitlog.NewLogfmtLogger(buf)
+	}
+	srv = pubsub.ApplyContextLog(newLogger)(srv)
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://foobar.com/hello/world", nil)
