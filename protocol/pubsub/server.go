@@ -70,12 +70,14 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// load user from token
 	if c, err := r.Cookie("tomatorpg-token"); err != nil {
-		// TODO: detect error not found and ignore
-		logger.Log(
-			"at", "error",
-			"message", "error reading token from cookie",
-			"error", err.Error(),
-		)
+		if err != http.ErrNoCookie {
+			// if not a no cookie error
+			logger.Log(
+				"at", "error",
+				"message", "error reading token from cookie",
+				"error", err.Error(),
+			)
+		}
 	} else if token, err := ParseToken("abcdef", c.Value); err != nil {
 		logger.Log(
 			"at", "error",
