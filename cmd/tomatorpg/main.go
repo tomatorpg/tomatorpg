@@ -11,6 +11,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
@@ -113,7 +114,11 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
-	http.Handle("/api.v1", pubsubServer)
+	applyMiddlewares := pubsub.Chain(
+		pubsub.ApplyRequestID,
+		pubsub.ApplyContextLog(kitlog.NewLogfmtLogger(os.Stdout)),
+	)
+	http.Handle("/api.v1", applyMiddlewares(pubsubServer))
 
 	log.Printf("listen to port %d", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
@@ -16,6 +17,7 @@ const (
 	jsonReqKey
 	sessionKey
 	srvKey
+	logCtxKey
 )
 
 // Session store connection session information
@@ -26,6 +28,7 @@ type Session struct {
 	RoomInfo    models.Room
 	User        models.User
 	Conn        MessageWriteCloser
+	Logger      kitlog.Logger
 }
 
 // WithSession stores a websocket connection reference into context
@@ -69,5 +72,16 @@ func WithServer(parent context.Context, srv *Server) context.Context {
 // GetServer get the server struct reference from context
 func GetServer(ctx context.Context) (srv *Server) {
 	srv, _ = ctx.Value(srvKey).(*Server)
+	return
+}
+
+// WithLogContext stores a go-kit log *Context to a context.Context
+func WithLogContext(parent context.Context, logCtx kitlog.Logger) context.Context {
+	return context.WithValue(parent, logCtxKey, logCtx)
+}
+
+// GetLogContext get the go-kit log *Context from the context.Context
+func GetLogContext(ctx context.Context) (logCtx kitlog.Logger) {
+	logCtx, _ = ctx.Value(logCtxKey).(kitlog.Logger)
 	return
 }

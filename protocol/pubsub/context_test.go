@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -72,4 +74,13 @@ func TestContext(t *testing.T) {
 		t.Errorf("expected pubsub.Server, got nil")
 	}
 
+}
+
+func TestWithLogContext(t *testing.T) {
+	logger := kitlog.NewLogfmtLogger(os.Stdout)
+	ctx := pubsub.WithLogContext(context.Background(), logger)
+	loggerOut := pubsub.GetLogContext(ctx)
+	if want, have := logger, loggerOut; want != have {
+		t.Errorf("expected %#v, got %#v", want, have)
+	}
 }
