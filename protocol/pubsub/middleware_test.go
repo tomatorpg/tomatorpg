@@ -93,7 +93,7 @@ func TestApplyContextLog(t *testing.T) {
 	r.Header.Add("X-Request-ID", "helloid")
 	srv.ServeHTTP(w, r)
 
-	if want, have := `request_id=helloid method=GET path=/hello/world protocol=http remote_addr=http://somewhere.com:1234`+"\nrequest_id=helloid hello=world\n", strings.Trim(string(buf.Bytes()), "\x00"); want != have {
+	if want, have := `request_id=helloid at=info method=GET path=/hello/world protocol=http remote_addr=http://somewhere.com:1234`+"\nrequest_id=helloid hello=world\n", strings.Trim(string(buf.Bytes()), "\x00"); want != have {
 		t.Errorf("\nexpected %#v\n     got %#v", want, have)
 	}
 }

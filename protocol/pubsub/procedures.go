@@ -40,6 +40,7 @@ func createRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 	newRoom.ID = 0 // ensure not injecting ID
 	db.Create(&newRoom)
 	logger.Log(
+		"at", "info",
 		"action", "rooms.create",
 		"room.id", newRoom.ID,
 	)
@@ -53,6 +54,7 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	db.Order("created_at desc").Find(&rooms)
 	logger := GetLogContext(ctx)
 	logger.Log(
+		"at", "info",
 		"action", "rooms.list",
 		"len(room)", len(rooms),
 	)
@@ -83,6 +85,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 	}
 
 	logger.Log(
+		"at", "info",
 		"action", "rooms.replay",
 		"room.id", sess.RoomInfo.ID,
 	)
@@ -93,6 +96,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
 	if len(historyCopy) > 0 {
 		logger.Log(
+			"at", "info",
 			"message", "start replaying activities to client",
 			"room.id", sess.RoomInfo.ID,
 		)
@@ -107,6 +111,7 @@ func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err err
 				sess.Conn.Close()
 				sess.RoomChan.Unsubscribe(sess.Conn)
 				logger.Log(
+					"at", "info",
 					"message", "error writing JSON to socket",
 					"error", err.Error(),
 				)
@@ -152,7 +157,8 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		activity.Action = "message"
 	}
 	logger.Log(
-		"message", "roomActivity",
+		"at", "info",
+		"action", "roomActivity.create",
 		"user.id", activity.UserID,
 		"room.id", sess.RoomInfo.ID,
 		"activity.action", activity.Action,
@@ -206,6 +212,7 @@ func joinRoom(ctx context.Context, req interface{}) (resp interface{}, err error
 	db.Find(&roomToJoin, idToJoin)
 	if roomToJoin.ID != idToJoin {
 		logger.Log(
+			"at", "info",
 			"message", "failed to join room, room not found",
 			"room.id", roomToJoin.ID,
 		)

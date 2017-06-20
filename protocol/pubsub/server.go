@@ -43,14 +43,14 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log(
 			"at", "error",
-			"message", "unable to upgrade connection",
+			"message", "unable to upgrade to websocket connection",
 			"error", err.Error(),
 		)
 		respEnc := json.NewEncoder(w)
 		w.WriteHeader(http.StatusBadRequest)
 		respEnc.Encode(map[string]interface{}{
 			"status":       "error",
-			"error":        "unable to upgrade connection",
+			"error":        "unable to upgrade to websocket connection",
 			"errorDetails": err.Error(),
 		})
 		return
@@ -60,7 +60,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	logger.Log(
 		"at", "info",
-		"message", "connection upgrade success",
+		"message", "websocket connection upgrade success",
 	)
 
 	// context variables
@@ -119,12 +119,19 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			switch terr := err.(type) {
 			case *websocket.CloseError:
-				sess.Logger.Log(
-					"at", "info",
-					"message", "websocket disconnected",
-					"errCode", terr.Code,
-					"error", terr.Text,
-				)
+				if terr.Code == 1001 {
+					sess.Logger.Log(
+						"at", "info",
+						"message", "websocket disconnected",
+					)
+				} else {
+					sess.Logger.Log(
+						"at", "warning",
+						"message", "websocket disconnected",
+						"errCode", terr.Code,
+						"error", terr.Text,
+					)
+				}
 			default:
 				sess.Logger.Log(
 					"at", "error",
