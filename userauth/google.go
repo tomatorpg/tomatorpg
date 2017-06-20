@@ -2,7 +2,6 @@ package userauth
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/utils"
 	"gopkg.in/jose.v1/jws"
 
 	"golang.org/x/oauth2"
@@ -33,10 +33,15 @@ func GoogleConfig(hostURL string) *oauth2.Config {
 // GoogleCallback returns a http.Handler for Google account login handing
 func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
 		token, err := conf.Exchange(oauth2.NoContext, code)
 		if err != nil {
-			log.Printf("Code exchange failed with '%s'\n", err.Error())
+			logger.Log(
+				"at", "error",
+				"message", "code exchange failed",
+				"error", err.Error(),
+			)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -105,7 +110,11 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 
 			tx.Commit()
 		}
-		log.Printf("user found or created: %#v", authUser)
+		logger.Log(
+			"message", "user found or created",
+			"user.id", authUser.ID,
+			"user.name", authUser.Name,
+		)
 
 		// Create JWS claims with the user info
 		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
