@@ -104,17 +104,18 @@ func main() {
 
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
-	http.Handle("/assets/js/", http.StripPrefix("/assets", fs))
-	http.HandleFunc("/", handlePage(webpackDevHost))
-	http.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
+	mainServer := http.NewServeMux()
+	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
+	mainServer.HandleFunc("/", handlePage(webpackDevHost))
+	mainServer.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
 		url := userauth.GoogleConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
 		http.Redirect(w, r, url, http.StatusFound)
 	})
-	http.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
+	mainServer.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
 		userauth.GoogleConfig(publicURL),
 		db,
 	))
-	http.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
+	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "tomatorpg-token",
 			Path:    "/",
@@ -122,16 +123,17 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
+	mainServer.Handle("/api.v1", pubsubServer)
+
 	applyMiddlewares := utils.Chain(
 		utils.ApplyRequestID,
 		utils.ApplyLogger(func() kitlog.Logger {
 			return kitlog.NewLogfmtLogger(utils.LogWriter(logger))
 		}),
 	)
-	http.Handle("/api.v1", applyMiddlewares(pubsubServer))
 
 	logger.Printf("listen to port %d", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), applyMiddlewares(mainServer))
 	if err != nil {
 		logger.Fatal("ListenAndServe: ", err)
 	}
