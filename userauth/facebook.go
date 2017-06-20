@@ -6,32 +6,32 @@ import (
 	"os"
 	"time"
 
+	"gopkg.in/jose.v1/jws"
+
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/utils"
-	"gopkg.in/jose.v1/jws"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/facebook"
 )
 
-// GoogleConfig provides OAuth2 config for google login
-func GoogleConfig(hostURL string) *oauth2.Config {
+// FacebookConfig provides OAuth2 config for google login
+func FacebookConfig(hostURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/google/callback",
-		ClientID:     os.Getenv("OAUTH2_GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  hostURL + "/oauth2/facebook/callback",
+		ClientID:     os.Getenv("OAUTH2_FACEBOOK_CLIENT_ID"),
+		ClientSecret: os.Getenv("OAUTH2_FACEBOOK_CLIENT_SECRET"),
 		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
+			"email",
 		},
-		Endpoint: google.Endpoint,
+		Endpoint: facebook.Endpoint,
 	}
 }
 
-// GoogleCallback returns a http.Handler for Google account login handing
-func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+// FacebookCallback returns a http.Handler for Google account login handing
+func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
@@ -47,7 +47,7 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		}
 
 		client := conf.Client(context.Background(), token)
-		resp, err := client.Get("https://www.googleapis.com/oauth2/v1/userinfo")
+		resp, err := client.Get("https://graph.facebook.com/v2.9/me?fields=id,name,email")
 		if err != nil {
 			return
 		}
@@ -56,20 +56,14 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		/*
 			// NOTE: JSON structure of normal response body
 			{
-			 "id": "some-id-in-google-account",
-			 "email": "email-for-the-account",
-			 "verified_email": true,
-			 "name": "Some Name",
-			 "given_name": "Some",
-			 "family_name": "Name",
-			 "link": "https://plus.google.com/+SomeUserOnGPlus",
-			 "picture": "url-to-some-picture",
-			 "gender": "female",
-			 "locale": "zh-HK"
+			  "id": "numerical-user-id",
+			  "name": "user display name",
+			  "email": "email address"
 			}
 		*/
 
 		result := lzjson.Decode(resp.Body)
+
 		// TODO: detect read  / decode error
 		// TODO: check if the email has been verified or not
 		authUser := models.User{

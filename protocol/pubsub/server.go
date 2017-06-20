@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
+	"github.com/tomatorpg/tomatorpg/userauth"
 	"github.com/tomatorpg/tomatorpg/utils"
 )
 
@@ -17,10 +18,11 @@ type Server struct {
 	chans    ChanColl
 	upgrader websocket.Upgrader
 	router   *Router
+	jwtKey   string
 }
 
 // NewServer create pubsub http handler
-func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
+func NewServer(db *gorm.DB, coll ChanColl, router *Router, jwtKey string) *Server {
 	return &Server{
 		db:    db,
 		chans: coll,
@@ -30,6 +32,7 @@ func NewServer(db *gorm.DB, coll ChanColl, router *Router) *Server {
 			},
 		},
 		router: router,
+		jwtKey: jwtKey,
 	}
 }
 
@@ -79,7 +82,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"error", err.Error(),
 			)
 		}
-	} else if token, err := ParseToken("abcdef", c.Value); err != nil {
+	} else if token, err := userauth.DecodeTokenStr("abcdef", c.Value); err != nil {
 		logger.Log(
 			"at", "error",
 			"message", "error parsing / validating token",
