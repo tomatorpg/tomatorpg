@@ -124,6 +124,16 @@ func main() {
 		jwtSecret,
 		publicURL,
 	))
+	mainServer.HandleFunc("/oauth2/facebook", func(w http.ResponseWriter, r *http.Request) {
+		url := userauth.FacebookConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusFound)
+	})
+	mainServer.HandleFunc("/oauth2/facebook/callback", userauth.FacebookCallback(
+		userauth.FacebookConfig(publicURL),
+		db,
+		jwtSecret,
+		publicURL,
+	))
 	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "tomatorpg-token",
