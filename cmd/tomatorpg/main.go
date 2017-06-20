@@ -18,6 +18,7 @@ import (
 	"github.com/tomatorpg/tomatorpg/assets"
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
+	"github.com/tomatorpg/tomatorpg/utils"
 )
 
 var port uint64
@@ -114,9 +115,10 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
 	applyMiddlewares := pubsub.Chain(
 		pubsub.ApplyRequestID,
-		pubsub.ApplyContextLog(kitlog.NewLogfmtLogger(os.Stdout)),
+		pubsub.ApplyContextLog(kitlog.NewLogfmtLogger(utils.LogWriter(logger))),
 	)
 	http.Handle("/api.v1", applyMiddlewares(pubsubServer))
 
