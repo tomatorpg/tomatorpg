@@ -77,6 +77,7 @@ func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) 
 
 		if err != nil {
 			logger.Log(
+				"at", "error",
 				"message", "error",
 				"error", err.Error(),
 			)
@@ -86,6 +87,7 @@ func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) 
 		}
 
 		logger.Log(
+			"at", "info",
 			"message", "user found or created",
 			"user.id", authUser.ID,
 			"user.name", authUser.Name,

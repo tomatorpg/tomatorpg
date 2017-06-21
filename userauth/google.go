@@ -83,6 +83,7 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 
 		if err != nil {
 			logger.Log(
+				"at", "error",
 				"message", "error",
 				"error", err.Error(),
 			)
@@ -92,6 +93,7 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		}
 
 		logger.Log(
+			"at", "info",
 			"message", "user found or created",
 			"user.id", authUser.ID,
 			"user.name", authUser.Name,

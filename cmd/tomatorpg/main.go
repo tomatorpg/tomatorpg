@@ -144,6 +144,27 @@ func main() {
 		jwtSecret,
 		publicURL,
 	))
+	mainServer.HandleFunc("/oauth2/twitter", func(w http.ResponseWriter, r *http.Request) {
+		logger := utils.GetLogger(r.Context())
+		c := userauth.TwitterConsumer()
+		requestToken, url, innerErr := c.GetRequestTokenAndUrl(publicURL + "/oauth2/twitter/callback")
+		if innerErr != nil {
+			logger.Log(
+				"at", "error",
+				"message", "error retrieving twitter token",
+				"error", innerErr.Error(),
+			)
+			return
+		}
+		userauth.TokenSave(requestToken)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	})
+	mainServer.HandleFunc("/oauth2/twitter/callback", userauth.TwitterCallback(
+		userauth.TwitterConsumer(),
+		db,
+		jwtSecret,
+		publicURL,
+	))
 	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "tomatorpg-token",
