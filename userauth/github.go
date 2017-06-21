@@ -113,44 +113,25 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 
 		// TODO: detect read  / decode error
 		// TODO: check if the email has been verified or not
-		authUser := models.User{
-			Name:         result.Get("name").String(),
-			PrimaryEmail: result.Get("email").String(),
+		authUser, err := loadOrCreateUser(
+			db,
+			models.User{
+				Name:         result.Get("name").String(),
+				PrimaryEmail: result.Get("email").String(),
+			},
+			[]string{},
+		)
+
+		if err != nil {
+			logger.Log(
+				"message", "error",
+				"error", err.Error(),
+			)
+			// TODO; return some warning message to redirected page
+			http.Redirect(w, r, hostURL, http.StatusFound)
+			return
 		}
 
-		// search existing user with the email
-		var userEmail models.UserEmail
-		var prevUser models.User
-
-		if db.First(&prevUser, "primary_email = ?", authUser.PrimaryEmail); prevUser.PrimaryEmail != "" {
-			// TODO: log this?
-			authUser = prevUser
-		} else if db.First(&userEmail, "email = ?", authUser.PrimaryEmail); userEmail.Email != "" {
-			// TODO: log this?
-			db.First(&authUser, "id = ?", userEmail.UserID)
-		} else {
-
-			tx := db.Begin()
-
-			// create user
-			if res := tx.Create(&authUser); res.Error != nil {
-				// TODO: log and provide error to user
-				tx.Rollback()
-				return
-			}
-
-			// create user-email relation
-			newUserEmail := models.UserEmail{
-				UserID: authUser.ID,
-				Email:  authUser.PrimaryEmail,
-			}
-			if res := tx.Create(&newUserEmail); res.Error != nil {
-				tx.Rollback()
-				return
-			}
-
-			tx.Commit()
-		}
 		logger.Log(
 			"message", "user found or created",
 			"user.id", authUser.ID,
