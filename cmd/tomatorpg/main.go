@@ -134,6 +134,16 @@ func main() {
 		jwtSecret,
 		publicURL,
 	))
+	mainServer.HandleFunc("/oauth2/github", func(w http.ResponseWriter, r *http.Request) {
+		url := userauth.GithubConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusFound)
+	})
+	mainServer.HandleFunc("/oauth2/github/callback", userauth.GithubCallback(
+		userauth.GithubConfig(publicURL),
+		db,
+		jwtSecret,
+		publicURL,
+	))
 	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "tomatorpg-token",
