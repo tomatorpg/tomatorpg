@@ -47,13 +47,15 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 			return
 		}
 
+		// read into
+		var primaryEmail string
+		var verifiedEmails []string
+
 		client := conf.Client(context.Background(), token)
 		resp, err := client.Get("https://api.github.com/user")
 		if err != nil {
 			return
 		}
-
-		// read into
 		/*
 			// NOTE: JSON structure of normal response body
 			{
@@ -101,14 +103,47 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 			  }
 			}
 		*/
+		userInfoResult := lzjson.Decode(resp.Body)
 
-		result := lzjson.Decode(resp.Body)
-		log.Printf("raw result: %s", result.Raw())
-
-		if emailNode := result.Get("email"); emailNode.Type() != lzjson.TypeString || emailNode.String() == "" {
-			// TODO: read email from email endpoint
-			// TODO: or redirect to error handling page
-			log.Printf("no email!")
+		// read other email(s) from email endpoint
+		// TODO: or redirect to error handling page
+		resp, err = client.Get("https://api.github.com/user/emails")
+		if err != nil {
+			return
+		}
+		/*
+			// NOTE: JSON structure of normal response body
+			[
+			  {
+			    "email": "octocat@github.com",
+			    "verified": true,
+			    "primary": true,
+			    "visibility": "public"
+			  }
+			]
+		*/
+		userEmailResult := lzjson.Decode(resp.Body)
+		emails := []struct {
+			Email    string `json:"email"`
+			Verified bool   `json:"verified"`
+			Primary  bool   `json:"primary"`
+		}{}
+		if err = userEmailResult.Unmarshal(&emails); err == nil {
+			verifiedEmails = make([]string, 0, len(emails))
+			for _, email := range emails {
+				if email.Primary {
+					primaryEmail = email.Email
+				} else if email.Verified {
+					verifiedEmails = append(verifiedEmails, email.Email)
+				}
+			}
+		} else {
+			log.Printf("unexpected error: %s", err.Error())
+			logger.Log(
+				"message", "error reading results from github's user/emails endpoint",
+				"error", err.Error(),
+				"rawResponse", string(userEmailResult.Raw()),
+			)
 		}
 
 		// TODO: detect read  / decode error
@@ -116,10 +151,10 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		authUser, err := loadOrCreateUser(
 			db,
 			models.User{
-				Name:         result.Get("name").String(),
-				PrimaryEmail: result.Get("email").String(),
+				Name:         userInfoResult.Get("name").String(),
+				PrimaryEmail: primaryEmail,
 			},
-			[]string{},
+			verifiedEmails,
 		)
 
 		if err != nil {
