@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 )
 
 type intlDummyChanColl map[uint]Channel
@@ -48,18 +49,24 @@ func (ch *intlDummyChannel) BroadcastJSON(v interface{}) {
 }
 
 func (ch *intlDummyChannel) run() {
+intlDummyChanMainLoop:
 	for {
-		// Grab the next message from the broadcast channel
-		msg := <-ch.broadcast
+		select {
 
-		// Send it out to every client that is currently connected
-		for client := range ch.conns {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				client.Close()
-				ch.Unsubscribe(client)
-				log.Printf("error: %v", err)
+		case msg := <-ch.broadcast:
+			// Grab the next message from the broadcast channel
+			// Send it out to every client that is currently connected
+			for client := range ch.conns {
+				err := client.WriteJSON(msg)
+				if err != nil {
+					client.Close()
+					ch.Unsubscribe(client)
+					log.Printf("error: %v", err)
+				}
 			}
+		case <-time.After(1 * time.Second):
+			log.Printf("timeout")
+			break intlDummyChanMainLoop
 		}
 	}
 }
