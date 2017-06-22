@@ -17,9 +17,9 @@ import (
 )
 
 // GoogleConfig provides OAuth2 config for google login
-func GoogleConfig(hostURL string) *oauth2.Config {
+func GoogleConfig(redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/google/callback",
+		RedirectURL:  redirectURL,
 		ClientID:     os.Getenv("OAUTH2_GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("OAUTH2_GOOGLE_CLIENT_SECRET"),
 		Scopes: []string{

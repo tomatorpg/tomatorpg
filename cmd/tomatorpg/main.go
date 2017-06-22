@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/oauth2"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
 	kitlog "github.com/go-kit/kit/log"
@@ -114,52 +113,44 @@ func main() {
 	mainServer := http.NewServeMux()
 	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
 	mainServer.HandleFunc("/", handlePage(webpackDevHost))
-	mainServer.HandleFunc("/oauth2/google", func(w http.ResponseWriter, r *http.Request) {
-		url := userauth.GoogleConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
-		http.Redirect(w, r, url, http.StatusFound)
-	})
-	mainServer.HandleFunc("/oauth2/google/callback", userauth.GoogleCallback(
+	mainServer.Handle("/oauth2/google", userauth.RedirectHandler(
+		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/google/callback")),
+		publicURL+"/oauth2/error",
+	))
+	mainServer.Handle("/oauth2/google/callback", userauth.GoogleCallback(
 		userauth.GoogleConfig(publicURL),
 		db,
 		jwtSecret,
 		publicURL,
 	))
-	mainServer.HandleFunc("/oauth2/facebook", func(w http.ResponseWriter, r *http.Request) {
-		url := userauth.FacebookConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
-		http.Redirect(w, r, url, http.StatusFound)
-	})
-	mainServer.HandleFunc("/oauth2/facebook/callback", userauth.FacebookCallback(
+	mainServer.Handle("/oauth2/facebook", userauth.RedirectHandler(
+		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/facebook/callback")),
+		publicURL+"/oauth2/error",
+	))
+	mainServer.Handle("/oauth2/facebook/callback", userauth.FacebookCallback(
 		userauth.FacebookConfig(publicURL),
 		db,
 		jwtSecret,
 		publicURL,
 	))
-	mainServer.HandleFunc("/oauth2/github", func(w http.ResponseWriter, r *http.Request) {
-		url := userauth.GithubConfig(publicURL).AuthCodeURL("state", oauth2.AccessTypeOffline)
-		http.Redirect(w, r, url, http.StatusFound)
-	})
-	mainServer.HandleFunc("/oauth2/github/callback", userauth.GithubCallback(
+	mainServer.Handle("/oauth2/github", userauth.RedirectHandler(
+		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/github/callback")),
+		publicURL+"/oauth2/error",
+	))
+	mainServer.Handle("/oauth2/github/callback", userauth.GithubCallback(
 		userauth.GithubConfig(publicURL),
 		db,
 		jwtSecret,
 		publicURL,
 	))
-	mainServer.HandleFunc("/oauth2/twitter", func(w http.ResponseWriter, r *http.Request) {
-		logger := utils.GetLogger(r.Context())
-		c := userauth.TwitterConsumer()
-		requestToken, url, innerErr := c.GetRequestTokenAndUrl(publicURL + "/oauth2/twitter/callback")
-		if innerErr != nil {
-			logger.Log(
-				"at", "error",
-				"message", "error retrieving twitter token",
-				"error", innerErr.Error(),
-			)
-			return
-		}
-		userauth.TokenSave(requestToken)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-	})
-	mainServer.HandleFunc("/oauth2/twitter/callback", userauth.TwitterCallback(
+	mainServer.Handle("/oauth2/twitter", userauth.RedirectHandler(
+		userauth.OAuth1aAuthURLFactory(
+			userauth.TwitterConsumer(),
+			publicURL+"/oauth2/twitter/callback",
+		),
+		publicURL+"/oauth2/error",
+	))
+	mainServer.Handle("/oauth2/twitter/callback", userauth.TwitterCallback(
 		userauth.TwitterConsumer(),
 		db,
 		jwtSecret,

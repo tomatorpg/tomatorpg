@@ -19,9 +19,9 @@ import (
 )
 
 // GithubConfig provides OAuth2 config for google login
-func GithubConfig(hostURL string) *oauth2.Config {
+func GithubConfig(redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/github/callback",
+		RedirectURL:  redirectURL,
 		ClientID:     os.Getenv("OAUTH2_GITHUB_CLIENT_ID"),
 		ClientSecret: os.Getenv("OAUTH2_GITHUB_CLIENT_SECRET"),
 		Scopes: []string{
