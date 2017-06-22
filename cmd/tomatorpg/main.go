@@ -133,6 +133,7 @@ func main() {
 		genLoginCookie,
 		jwtSecret,
 		publicURL,
+		publicURL+"/oauth2/error",
 	))
 	mainServer.Handle("/oauth2/facebook", userauth.RedirectHandler(
 		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/facebook/callback")),
@@ -144,6 +145,7 @@ func main() {
 		genLoginCookie,
 		jwtSecret,
 		publicURL,
+		publicURL+"/oauth2/error",
 	))
 	mainServer.Handle("/oauth2/github", userauth.RedirectHandler(
 		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/github/callback")),
@@ -155,6 +157,7 @@ func main() {
 		genLoginCookie,
 		jwtSecret,
 		publicURL,
+		publicURL+"/oauth2/error",
 	))
 	mainServer.Handle("/oauth2/twitter", userauth.RedirectHandler(
 		userauth.OAuth1aAuthURLFactory(
@@ -170,6 +173,7 @@ func main() {
 		genLoginCookie,
 		jwtSecret,
 		publicURL,
+		publicURL+"/oauth2/error",
 	))
 	mainServer.Handle("/oauth2/logout",
 		userauth.LogoutHandler("/", genLoginCookie))

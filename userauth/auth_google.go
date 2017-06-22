@@ -33,7 +33,7 @@ func GoogleCallback(
 	conf *oauth2.Config,
 	db *gorm.DB,
 	genLoginCookie CookieFactory,
-	jwtKey, hostURL string,
+	jwtKey, successURL, errURL string,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
@@ -45,13 +45,19 @@ func GoogleCallback(
 				"message", "code exchange failed",
 				"error", err.Error(),
 			)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
 		client := conf.Client(context.Background(), token)
 		resp, err := client.Get("https://www.googleapis.com/oauth2/v1/userinfo")
 		if err != nil {
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve userinfo",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -91,7 +97,7 @@ func GoogleCallback(
 				"error", err.Error(),
 			)
 			// TODO; return some warning message to redirected page
-			http.Redirect(w, r, hostURL, http.StatusFound)
+			http.Redirect(w, r, errURL, http.StatusFound)
 			return
 		}
 
@@ -106,6 +112,6 @@ func GoogleCallback(
 		http.SetCookie(w,
 			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.Redirect(w, r, hostURL, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, successURL, http.StatusTemporaryRedirect)
 	}
 }

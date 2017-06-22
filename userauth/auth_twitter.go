@@ -1,7 +1,6 @@
 package userauth
 
 import (
-	"log"
 	"net/http"
 	"os"
 
@@ -54,7 +53,7 @@ func TwitterCallback(
 	db *gorm.DB,
 	tokenConsume func(tokenKey string) *oauth.RequestToken,
 	genLoginCookie CookieFactory,
-	jwtKey, hostURL string,
+	jwtKey, successURL, errURL string,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
@@ -64,18 +63,38 @@ func TwitterCallback(
 
 		accessToken, err := c.AuthorizeToken(tokenConsume(tokenKey), verificationCode)
 		if err != nil {
-			log.Fatal(err)
+			if err != nil {
+				logger.Log(
+					"at", "error",
+					"message", "failed to retrieve access token",
+					"error", err.Error(),
+				)
+				http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
+				return
+			}
 		}
 
 		client, err := c.MakeHttpClient(accessToken)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log(
+				"at", "error",
+				"message", "error making credential client",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
+			return
 		}
 
 		resp, err := client.Get(
 			"https://api.twitter.com/1.1/account/verify_credentials.json?include_email=true&skip_status")
 		if err != nil {
-			log.Fatal(err)
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve verified credentials",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
+			return
 		}
 		defer resp.Body.Close()
 
@@ -144,7 +163,7 @@ func TwitterCallback(
 				"error", err.Error(),
 			)
 			// TODO; return some warning message to redirected page
-			http.Redirect(w, r, hostURL, http.StatusFound)
+			http.Redirect(w, r, errURL, http.StatusFound)
 			return
 		}
 
@@ -159,6 +178,6 @@ func TwitterCallback(
 		http.SetCookie(w,
 			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.Redirect(w, r, hostURL, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, successURL, http.StatusTemporaryRedirect)
 	}
 }
