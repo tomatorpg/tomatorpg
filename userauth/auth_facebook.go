@@ -3,7 +3,6 @@ package userauth
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -15,11 +14,11 @@ import (
 )
 
 // FacebookConfig provides OAuth2 config for google login
-func FacebookConfig(redirectURL string) *oauth2.Config {
+func FacebookConfig(provider AuthProvider, redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
 		RedirectURL:  redirectURL,
-		ClientID:     os.Getenv("OAUTH2_FACEBOOK_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_FACEBOOK_CLIENT_SECRET"),
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
 		Scopes: []string{
 			"email",
 		},

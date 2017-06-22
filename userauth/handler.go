@@ -80,6 +80,7 @@ func LogoutHandler(redirectURL string, getLoginCookie CookieFactory) http.Handle
 func LoginHandler(
 	db *gorm.DB,
 	genLoginCookie CookieFactory,
+	providers []AuthProvider,
 	jwtSecret, baseURL, oauth2Path, successPath, errPath string,
 ) http.Handler {
 
@@ -90,57 +91,89 @@ func LoginHandler(
 	oauth2URL := baseURL + oauth2Path   // full URL to oauth2 path
 	successURL := baseURL + successPath // full URL to success page
 
-	mux.Handle(oauth2Path+"/google", RedirectHandler(
-		OAuth2AuthURLFactory(GoogleConfig(oauth2URL+"/google/callback")),
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/google/callback", GoogleCallback(
-		GoogleConfig(oauth2URL+"/google/callback"),
-		db,
-		genLoginCookie,
-		jwtSecret,
-		successURL,
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/facebook", RedirectHandler(
-		OAuth2AuthURLFactory(FacebookConfig(oauth2URL+"/facebook/callback")),
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/facebook/callback", FacebookCallback(
-		FacebookConfig(oauth2URL+"/facebook/callback"),
-		db,
-		genLoginCookie,
-		jwtSecret,
-		successURL,
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/github", RedirectHandler(
-		OAuth2AuthURLFactory(GithubConfig(oauth2URL+"/github/callback")),
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/github/callback", GithubCallback(
-		GithubConfig(oauth2URL+"/github/callback"),
-		db,
-		genLoginCookie,
-		jwtSecret,
-		successURL,
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/twitter", RedirectHandler(
-		OAuth1aAuthURLFactory(
-			TwitterConsumer(),
-			oauth2URL+"/twitter/callback",
-		),
-		errPath,
-	))
-	mux.Handle(oauth2Path+"/twitter/callback", TwitterCallback(
-		TwitterConsumer(),
-		db,
-		TokenConsume,
-		genLoginCookie,
-		jwtSecret,
-		successURL,
-		errPath,
-	))
+	if provider := FindProvider("google", providers); provider != nil {
+		mux.Handle(oauth2Path+"/google", RedirectHandler(
+			OAuth2AuthURLFactory(GoogleConfig(
+				*provider,
+				oauth2URL+"/google/callback",
+			)),
+			errPath,
+		))
+		mux.Handle(oauth2Path+"/google/callback", GoogleCallback(
+			GoogleConfig(
+				*provider,
+				oauth2URL+"/google/callback",
+			),
+			db,
+			genLoginCookie,
+			jwtSecret,
+			successURL,
+			errPath,
+		))
+	}
+
+	if provider := FindProvider("facebook", providers); provider != nil {
+		mux.Handle(oauth2Path+"/facebook", RedirectHandler(
+			OAuth2AuthURLFactory(
+				FacebookConfig(
+					*provider,
+					oauth2URL+"/facebook/callback",
+				),
+			),
+			errPath,
+		))
+		mux.Handle(oauth2Path+"/facebook/callback", FacebookCallback(
+			FacebookConfig(
+				*provider,
+				oauth2URL+"/facebook/callback",
+			),
+			db,
+			genLoginCookie,
+			jwtSecret,
+			successURL,
+			errPath,
+		))
+	}
+
+	if provider := FindProvider("github", providers); provider != nil {
+		mux.Handle(oauth2Path+"/github", RedirectHandler(
+			OAuth2AuthURLFactory(GithubConfig(
+				*provider,
+				oauth2URL+"/github/callback",
+			)),
+			errPath,
+		))
+		mux.Handle(oauth2Path+"/github/callback", GithubCallback(
+			GithubConfig(
+				*provider,
+				oauth2URL+"/github/callback",
+			),
+			db,
+			genLoginCookie,
+			jwtSecret,
+			successURL,
+			errPath,
+		))
+	}
+
+	if provider := FindProvider("twitter", providers); provider != nil {
+		mux.Handle(oauth2Path+"/twitter", RedirectHandler(
+			OAuth1aAuthURLFactory(
+				TwitterConsumer(*provider),
+				oauth2URL+"/twitter/callback",
+			),
+			errPath,
+		))
+		mux.Handle(oauth2Path+"/twitter/callback", TwitterCallback(
+			TwitterConsumer(*provider),
+			db,
+			TokenConsume,
+			genLoginCookie,
+			jwtSecret,
+			successURL,
+			errPath,
+		))
+	}
+
 	return mux
 }

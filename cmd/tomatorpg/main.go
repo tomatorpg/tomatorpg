@@ -118,6 +118,12 @@ func main() {
 		jwtSecret,
 	)
 
+	// get auth providers from os environment
+	authProviders := userauth.EnvProviders(os.Getenv, "/oauth2")
+	if len(authProviders) == 0 {
+		logger.Print("warning: No authentication provider is properly setup. Please setup at least one.")
+	}
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
@@ -129,6 +135,7 @@ func main() {
 	mainServer.Handle("/oauth2/", userauth.LoginHandler(
 		db,
 		genLoginCookie,
+		authProviders,
 		jwtSecret,
 		publicURL,
 		"/oauth2",
@@ -146,7 +153,7 @@ func main() {
 			PageTitle:       "TomatoRPG | Login",
 			PageHeaderTitle: "Login TomatoRPG",
 			BasePath:        "/oauth2",
-			Actions:         userauth.EnvProviders("/oauth2"),
+			Actions:         authProviders,
 		},
 	))
 	mainServer.Handle("/oauth2/logout",

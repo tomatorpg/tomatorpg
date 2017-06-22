@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -16,11 +15,11 @@ import (
 )
 
 // GithubConfig provides OAuth2 config for google login
-func GithubConfig(redirectURL string) *oauth2.Config {
+func GithubConfig(provider AuthProvider, redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
 		RedirectURL:  redirectURL,
-		ClientID:     os.Getenv("OAUTH2_GITHUB_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_GITHUB_CLIENT_SECRET"),
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
 		Scopes: []string{
 			"user:email",
 		},

@@ -2,7 +2,6 @@ package userauth
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -35,10 +34,10 @@ func TokenConsume(tokenKey string) (token *oauth.RequestToken) {
 }
 
 // TwitterConsumer provides OAuth config for twitter login
-func TwitterConsumer() *oauth.Consumer {
+func TwitterConsumer(provider AuthProvider) *oauth.Consumer {
 	return oauth.NewConsumer(
-		os.Getenv("OAUTH2_TWITTER_CLIENT_ID"),
-		os.Getenv("OAUTH2_TWITTER_CLIENT_SECRET"),
+		provider.ClientID,
+		provider.ClientSecret,
 		oauth.ServiceProvider{
 			RequestTokenUrl:   "https://api.twitter.com/oauth/request_token",
 			AuthorizeTokenUrl: "https://api.twitter.com/oauth/authorize",
