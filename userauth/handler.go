@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"github.com/mrjones/oauth"
 	"github.com/tomatorpg/tomatorpg/utils"
 
@@ -70,6 +71,76 @@ func LogoutHandler(redirectURL string, getLoginCookie CookieFactory) http.Handle
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie := getLoginCookie(r)
 		cookie.Expires = time.Now().Add(-1 * time.Hour) // expires immediately
+		http.SetCookie(w, cookie)
 		http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 	}
+}
+
+// LoginHandler return a mux to handle all login related routes
+func LoginHandler(
+	db *gorm.DB,
+	genLoginCookie CookieFactory,
+	jwtSecret, baseURL, oauth2Path, successPath, errPath string,
+) http.Handler {
+
+	// Note: oauth2Path must start with "/" and must not have trailing slash
+	// Note: baseURL must be full URL without path or any trailing slash
+
+	mux := http.NewServeMux()
+	oauth2URL := baseURL + oauth2Path   // full URL to oauth2 path
+	successURL := baseURL + successPath // full URL to success page
+
+	mux.Handle(oauth2Path+"/google", RedirectHandler(
+		OAuth2AuthURLFactory(GoogleConfig(oauth2URL+"/google/callback")),
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/google/callback", GoogleCallback(
+		GoogleConfig(oauth2URL+"/google/callback"),
+		db,
+		genLoginCookie,
+		jwtSecret,
+		successURL,
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/facebook", RedirectHandler(
+		OAuth2AuthURLFactory(FacebookConfig(oauth2URL+"/facebook/callback")),
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/facebook/callback", FacebookCallback(
+		FacebookConfig(oauth2URL+"/facebook/callback"),
+		db,
+		genLoginCookie,
+		jwtSecret,
+		successURL,
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/github", RedirectHandler(
+		OAuth2AuthURLFactory(GithubConfig(oauth2URL+"/github/callback")),
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/github/callback", GithubCallback(
+		GithubConfig(oauth2URL+"/github/callback"),
+		db,
+		genLoginCookie,
+		jwtSecret,
+		successURL,
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/twitter", RedirectHandler(
+		OAuth1aAuthURLFactory(
+			TwitterConsumer(),
+			oauth2URL+"/twitter/callback",
+		),
+		errPath,
+	))
+	mux.Handle(oauth2Path+"/twitter/callback", TwitterCallback(
+		TwitterConsumer(),
+		db,
+		TokenConsume,
+		genLoginCookie,
+		jwtSecret,
+		successURL,
+		errPath,
+	))
+	return mux
 }

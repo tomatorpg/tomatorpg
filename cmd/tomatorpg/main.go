@@ -122,58 +122,32 @@ func main() {
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
 	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
-	mainServer.HandleFunc("/", handlePage(webpackDevHost))
-	mainServer.Handle("/oauth2/google", userauth.RedirectHandler(
-		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/google/callback")),
-		publicURL+"/oauth2/error",
+	mainServer.Handle("/", handlePage(
+		"index.html",
+		struct{ ScriptPath string }{ScriptPath: webpackDevHost},
 	))
-	mainServer.Handle("/oauth2/google/callback", userauth.GoogleCallback(
-		userauth.GoogleConfig(publicURL),
+	mainServer.Handle("/oauth2/", userauth.LoginHandler(
 		db,
 		genLoginCookie,
 		jwtSecret,
 		publicURL,
-		publicURL+"/oauth2/error",
+		"/oauth2",
+		"/",
+		"/oauth2/error",
 	))
-	mainServer.Handle("/oauth2/facebook", userauth.RedirectHandler(
-		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/facebook/callback")),
-		publicURL+"/oauth2/error",
-	))
-	mainServer.Handle("/oauth2/facebook/callback", userauth.FacebookCallback(
-		userauth.FacebookConfig(publicURL),
-		db,
-		genLoginCookie,
-		jwtSecret,
-		publicURL,
-		publicURL+"/oauth2/error",
-	))
-	mainServer.Handle("/oauth2/github", userauth.RedirectHandler(
-		userauth.OAuth2AuthURLFactory(userauth.GoogleConfig(publicURL+"/oauth2/github/callback")),
-		publicURL+"/oauth2/error",
-	))
-	mainServer.Handle("/oauth2/github/callback", userauth.GithubCallback(
-		userauth.GithubConfig(publicURL),
-		db,
-		genLoginCookie,
-		jwtSecret,
-		publicURL,
-		publicURL+"/oauth2/error",
-	))
-	mainServer.Handle("/oauth2/twitter", userauth.RedirectHandler(
-		userauth.OAuth1aAuthURLFactory(
-			userauth.TwitterConsumer(),
-			publicURL+"/oauth2/twitter/callback",
-		),
-		publicURL+"/oauth2/error",
-	))
-	mainServer.Handle("/oauth2/twitter/callback", userauth.TwitterCallback(
-		userauth.TwitterConsumer(),
-		db,
-		userauth.TokenConsume,
-		genLoginCookie,
-		jwtSecret,
-		publicURL,
-		publicURL+"/oauth2/error",
+	mainServer.Handle("/oauth2/login", handlePage(
+		"login.html",
+		struct {
+			PageTitle       string
+			PageHeaderTitle string
+			BasePath        string
+			Actions         []userauth.AuthProvider
+		}{
+			PageTitle:       "TomatoRPG | Login",
+			PageHeaderTitle: "Login TomatoRPG",
+			BasePath:        "/oauth2",
+			Actions:         userauth.EnvProviders("/oauth2"),
+		},
 	))
 	mainServer.Handle("/oauth2/logout",
 		userauth.LogoutHandler("/", genLoginCookie))

@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<title>{{ .PageTitle }}</title>
+<style>
+body { margin: 0; font-family: san-serif; background-color: #EEE; }
+h1 { font-size: 1.3em; text-align: center; }
+main { max-width: 300px; margin: calc(50vh - 250px) auto 0; padding: 30px 50px; box-shadow: 1px 1px 10px #999; background-color: #FFF; }
+.actions .btn { background-color: #444; color: #FFF; display: block; margin: 0.5em; padding: 0.5em 1em; border-radius: 0.2em; text-decoration: none; text-align: center; font-weight: bold; transition: opacity 0.5s; }
+.actions .btn:hover { opacity: 0.7; }
+.actions .btn-login-google { background-color: #DB4437; }
+.actions .btn-login-facebook { background-color: #3B5998; }
+.actions .btn-login-twitter { background-color: #1DA1F2; }
+.actions .btn-login-github { background-color: #24292E; }
+</style>
+</head>
+<body>
+<main>
+<h1>{{ .PageHeaderTitle }}</h1>
+<div class="actions">
+  {{ range .Actions }}
+    <a class="btn btn-login-{{ .ID }}" href="{{ .Path }}">{{ .Name }}</a>
+  {{ end }}
+</div>
+</main>
+</body>
+</html>

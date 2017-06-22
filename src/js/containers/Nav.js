@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const Nav = (state) => {
   const { user } = state;
   const userLink = (user.id === 0) ? (
-    <a href="/oauth2/google">Login</a>
+    <a href="/oauth2/login">Login</a>
   ) : (
     <a href="/oauth2/logout">Logout</a>
   );
