@@ -4,28 +4,29 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 )
 
-type dummyChanColl map[uint]Channel
+type intlDummyChanColl map[uint]Channel
 
-func (coll dummyChanColl) LoadOrOpen(id uint) Channel {
+func (coll intlDummyChanColl) LoadOrOpen(id uint) Channel {
 	if _, ok := coll[id]; !ok {
 		coll[id] = newDummyChannel()
 	}
 	return coll[id]
 }
 
-func (coll dummyChanColl) Close(id uint) {
+func (coll intlDummyChanColl) Close(id uint) {
 
 }
 
-type dummyChannel struct {
+type intlDummyChannel struct {
 	broadcast chan interface{}
 	conns     map[MessageWriteCloser]bool
 }
 
 func newDummyChannel() Channel {
-	ch := &dummyChannel{
+	ch := &intlDummyChannel{
 		broadcast: make(chan interface{}),
 		conns:     make(map[MessageWriteCloser]bool),
 	}
@@ -33,33 +34,39 @@ func newDummyChannel() Channel {
 	return ch
 }
 
-func (ch *dummyChannel) Subscribe(conn MessageWriteCloser) {
+func (ch *intlDummyChannel) Subscribe(conn MessageWriteCloser) {
 	ch.conns[conn] = true
 }
 
-func (ch *dummyChannel) Unsubscribe(conn MessageWriteCloser) {
+func (ch *intlDummyChannel) Unsubscribe(conn MessageWriteCloser) {
 	delete(ch.conns, conn)
 }
 
-func (ch *dummyChannel) BroadcastJSON(v interface{}) {
+func (ch *intlDummyChannel) BroadcastJSON(v interface{}) {
 	for conn := range ch.conns {
 		conn.WriteJSON(v)
 	}
 }
 
-func (ch *dummyChannel) run() {
+func (ch *intlDummyChannel) run() {
+intlDummyChanMainLoop:
 	for {
-		// Grab the next message from the broadcast channel
-		msg := <-ch.broadcast
+		select {
 
-		// Send it out to every client that is currently connected
-		for client := range ch.conns {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				client.Close()
-				ch.Unsubscribe(client)
-				log.Printf("error: %v", err)
+		case msg := <-ch.broadcast:
+			// Grab the next message from the broadcast channel
+			// Send it out to every client that is currently connected
+			for client := range ch.conns {
+				err := client.WriteJSON(msg)
+				if err != nil {
+					client.Close()
+					ch.Unsubscribe(client)
+					log.Printf("error: %v", err)
+				}
 			}
+		case <-time.After(1 * time.Second):
+			log.Printf("timeout")
+			break intlDummyChanMainLoop
 		}
 	}
 }
@@ -104,7 +111,7 @@ func (w errMsgWriter) Close() error {
 }
 
 func TestMessageTo(t *testing.T) {
-	ch := &dummyChannel{
+	ch := &intlDummyChannel{
 		conns: make(map[MessageWriteCloser]bool),
 	}
 	w1 := errMsgWriter(0)

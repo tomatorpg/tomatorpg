@@ -4,10 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"time"
-
-	"gopkg.in/jose.v1/jws"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -19,11 +15,11 @@ import (
 )
 
 // GithubConfig provides OAuth2 config for google login
-func GithubConfig(hostURL string) *oauth2.Config {
+func GithubConfig(provider AuthProvider, redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/github/callback",
-		ClientID:     os.Getenv("OAUTH2_GITHUB_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_GITHUB_CLIENT_SECRET"),
+		RedirectURL:  redirectURL,
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
 		Scopes: []string{
 			"user:email",
 		},
@@ -32,7 +28,12 @@ func GithubConfig(hostURL string) *oauth2.Config {
 }
 
 // GithubCallback returns a http.Handler for Google account login handing
-func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+func GithubCallback(
+	conf *oauth2.Config,
+	db *gorm.DB,
+	genLoginCookie CookieFactory,
+	jwtKey, successURL, errURL string,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
@@ -43,7 +44,7 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 				"message", "code exchange failed",
 				"error", err.Error(),
 			)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -54,6 +55,12 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		client := conf.Client(context.Background(), token)
 		resp, err := client.Get("https://api.github.com/user")
 		if err != nil {
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve user",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 		/*
@@ -109,6 +116,12 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 		// TODO: or redirect to error handling page
 		resp, err = client.Get("https://api.github.com/user/emails")
 		if err != nil {
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve user emails",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 		/*
@@ -164,7 +177,7 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 				"error", err.Error(),
 			)
 			// TODO; return some warning message to redirected page
-			http.Redirect(w, r, hostURL, http.StatusFound)
+			http.Redirect(w, r, errURL, http.StatusFound)
 			return
 		}
 
@@ -175,23 +188,10 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 			"user.name", authUser.Name,
 		)
 
-		// Create JWS claims with the user info
-		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
-		claims := jws.Claims{}
-		claims.Set("id", authUser.ID)
-		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost") // TODO: set audience correctly
-		claims.SetExpiration(expires)
-		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
+		// set authUser digest to cookie as jwt
+		http.SetCookie(w,
+			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "tomatorpg-token",
-			Value:    tokenStr,
-			Expires:  expires,
-			Path:     "/",
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, hostURL, http.StatusFound)
+		http.Redirect(w, r, successURL, http.StatusTemporaryRedirect)
 	}
 }

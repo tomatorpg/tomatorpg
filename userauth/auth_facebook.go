@@ -3,10 +3,6 @@ package userauth
 import (
 	"context"
 	"net/http"
-	"os"
-	"time"
-
-	"gopkg.in/jose.v1/jws"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -18,11 +14,11 @@ import (
 )
 
 // FacebookConfig provides OAuth2 config for google login
-func FacebookConfig(hostURL string) *oauth2.Config {
+func FacebookConfig(provider AuthProvider, redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/facebook/callback",
-		ClientID:     os.Getenv("OAUTH2_FACEBOOK_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_FACEBOOK_CLIENT_SECRET"),
+		RedirectURL:  redirectURL,
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
 		Scopes: []string{
 			"email",
 		},
@@ -31,7 +27,12 @@ func FacebookConfig(hostURL string) *oauth2.Config {
 }
 
 // FacebookCallback returns a http.Handler for Google account login handing
-func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+func FacebookCallback(
+	conf *oauth2.Config,
+	db *gorm.DB,
+	genLoginCookie CookieFactory,
+	jwtKey, successURL, errURL string,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
@@ -42,13 +43,19 @@ func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) 
 				"message", "code exchange failed",
 				"error", err.Error(),
 			)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
 		client := conf.Client(context.Background(), token)
 		resp, err := client.Get("https://graph.facebook.com/v2.9/me?fields=id,name,email")
 		if err != nil {
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve id, name and email",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -82,7 +89,7 @@ func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) 
 				"error", err.Error(),
 			)
 			// TODO; return some warning message to redirected page
-			http.Redirect(w, r, hostURL, http.StatusFound)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -93,23 +100,10 @@ func FacebookCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) 
 			"user.name", authUser.Name,
 		)
 
-		// Create JWS claims with the user info
-		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
-		claims := jws.Claims{}
-		claims.Set("id", authUser.ID)
-		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost") // TODO: set audience correctly
-		claims.SetExpiration(expires)
-		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
+		// set authUser digest to cookie as jwt
+		http.SetCookie(w,
+			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "tomatorpg-token",
-			Value:    tokenStr,
-			Expires:  expires,
-			Path:     "/",
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, hostURL, http.StatusFound)
+		http.Redirect(w, r, successURL, http.StatusTemporaryRedirect)
 	}
 }

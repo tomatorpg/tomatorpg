@@ -3,25 +3,22 @@ package userauth
 import (
 	"context"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/utils"
-	"gopkg.in/jose.v1/jws"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 // GoogleConfig provides OAuth2 config for google login
-func GoogleConfig(hostURL string) *oauth2.Config {
+func GoogleConfig(provider AuthProvider, redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
-		RedirectURL:  hostURL + "/oauth2/google/callback",
-		ClientID:     os.Getenv("OAUTH2_GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("OAUTH2_GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  redirectURL,
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
@@ -31,7 +28,12 @@ func GoogleConfig(hostURL string) *oauth2.Config {
 }
 
 // GoogleCallback returns a http.Handler for Google account login handing
-func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+func GoogleCallback(
+	conf *oauth2.Config,
+	db *gorm.DB,
+	genLoginCookie CookieFactory,
+	jwtKey, successURL, errURL string,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
@@ -42,13 +44,19 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 				"message", "code exchange failed",
 				"error", err.Error(),
 			)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
 		client := conf.Client(context.Background(), token)
 		resp, err := client.Get("https://www.googleapis.com/oauth2/v1/userinfo")
 		if err != nil {
+			logger.Log(
+				"at", "error",
+				"message", "failed to retrieve userinfo",
+				"error", err.Error(),
+			)
+			http.Redirect(w, r, errURL, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -88,7 +96,7 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 				"error", err.Error(),
 			)
 			// TODO; return some warning message to redirected page
-			http.Redirect(w, r, hostURL, http.StatusFound)
+			http.Redirect(w, r, errURL, http.StatusFound)
 			return
 		}
 
@@ -99,23 +107,10 @@ func GoogleCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 			"user.name", authUser.Name,
 		)
 
-		// Create JWS claims with the user info
-		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
-		claims := jws.Claims{}
-		claims.Set("id", authUser.ID)
-		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost") // TODO: set audience correctly
-		claims.SetExpiration(expires)
-		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
+		// set authUser digest to cookie as jwt
+		http.SetCookie(w,
+			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "tomatorpg-token",
-			Value:    tokenStr,
-			Expires:  expires,
-			Path:     "/",
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, hostURL, http.StatusFound)
+		http.Redirect(w, r, successURL, http.StatusTemporaryRedirect)
 	}
 }
