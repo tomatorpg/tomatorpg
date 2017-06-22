@@ -150,7 +150,7 @@ func TestProcedure_joinRoom(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -177,7 +177,7 @@ func TestProcedure_joinRoom(t *testing.T) {
 		t.Errorf("expect coll[1234] to exist")
 	}
 
-	chReal := ch.(*dummyChannel)
+	chReal := ch.(*intlDummyChannel)
 	if _, ok := chReal.conns[sess.Conn]; !ok {
 		t.Errorf("connection not found in channel")
 	}
@@ -202,7 +202,7 @@ func TestProcedure_joinRoom_withprevchan(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -226,7 +226,7 @@ func TestProcedure_joinRoom_withprevchan(t *testing.T) {
 
 	// record the room result for 1234
 	sess.RoomChan = coll[1234]
-	chReal1234 := sess.RoomChan.(*dummyChannel)
+	chReal1234 := sess.RoomChan.(*intlDummyChannel)
 
 	// join room 1235 and get new status
 	json.Unmarshal([]byte(`{"room_id": 1235}`), reqJSON)
@@ -248,7 +248,7 @@ func TestProcedure_joinRoom_withprevchan(t *testing.T) {
 	}
 
 	// conn should be in channel 1235
-	chReal1235 := ch.(*dummyChannel)
+	chReal1235 := ch.(*intlDummyChannel)
 	if _, ok := chReal1235.conns[sess.Conn]; !ok {
 		t.Errorf("connection not found in channel 1235, unexpected")
 	}
@@ -292,7 +292,7 @@ func TestProcedure_joinRoom_strid(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -319,7 +319,7 @@ func TestProcedure_joinRoom_strid(t *testing.T) {
 		t.Errorf("expect coll[1234] to exist")
 	}
 
-	chReal := ch.(*dummyChannel)
+	chReal := ch.(*intlDummyChannel)
 	if _, ok := chReal.conns[sess.Conn]; !ok {
 		t.Errorf("connection not found in channel")
 	}
@@ -344,7 +344,7 @@ func TestProcedure_joinRoom_nosession(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -389,7 +389,7 @@ func TestProcedure_joinRoom_nosocket(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -438,7 +438,7 @@ func TestProcedure_joinRoom_norequest(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
@@ -484,7 +484,7 @@ func TestProcedure_joinRoom_notfound(t *testing.T) {
 	})
 
 	// server with dummy components for test
-	coll := make(dummyChanColl)
+	coll := make(intlDummyChanColl)
 	srv := NewServer(
 		db,
 		coll,
