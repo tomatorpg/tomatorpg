@@ -5,9 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
-
-	"gopkg.in/jose.v1/jws"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
@@ -32,7 +29,12 @@ func GithubConfig(redirectURL string) *oauth2.Config {
 }
 
 // GithubCallback returns a http.Handler for Google account login handing
-func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+func GithubCallback(
+	conf *oauth2.Config,
+	db *gorm.DB,
+	genLoginCookie CookieFactory,
+	jwtKey, hostURL string,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		code := r.URL.Query().Get("code")
@@ -175,23 +177,10 @@ func GithubCallback(conf *oauth2.Config, db *gorm.DB, jwtKey, hostURL string) ht
 			"user.name", authUser.Name,
 		)
 
-		// Create JWS claims with the user info
-		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
-		claims := jws.Claims{}
-		claims.Set("id", authUser.ID)
-		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost") // TODO: set audience correctly
-		claims.SetExpiration(expires)
-		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
+		// set authUser digest to cookie as jwt
+		http.SetCookie(w,
+			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "tomatorpg-token",
-			Value:    tokenStr,
-			Expires:  expires,
-			Path:     "/",
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, hostURL, http.StatusFound)
+		http.Redirect(w, r, hostURL, http.StatusTemporaryRedirect)
 	}
 }

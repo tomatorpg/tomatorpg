@@ -4,14 +4,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-restit/lzjson"
 	"github.com/jinzhu/gorm"
 	"github.com/mrjones/oauth"
 	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/utils"
-	"gopkg.in/jose.v1/jws"
 )
 
 var tokens map[string]*oauth.RequestToken
@@ -51,14 +49,20 @@ func TwitterConsumer() *oauth.Consumer {
 }
 
 // TwitterCallback returns a http.Handler for Twitter account login handing
-func TwitterCallback(c *oauth.Consumer, db *gorm.DB, jwtKey, hostURL string) http.HandlerFunc {
+func TwitterCallback(
+	c *oauth.Consumer,
+	db *gorm.DB,
+	tokenConsume func(tokenKey string) *oauth.RequestToken,
+	genLoginCookie CookieFactory,
+	jwtKey, hostURL string,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := utils.GetLogger(r.Context())
 		values := r.URL.Query()
 		verificationCode := values.Get("oauth_verifier")
 		tokenKey := values.Get("oauth_token")
 
-		accessToken, err := c.AuthorizeToken(TokenConsume(tokenKey), verificationCode)
+		accessToken, err := c.AuthorizeToken(tokenConsume(tokenKey), verificationCode)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -151,23 +155,10 @@ func TwitterCallback(c *oauth.Consumer, db *gorm.DB, jwtKey, hostURL string) htt
 			"user.name", authUser.Name,
 		)
 
-		// Create JWS claims with the user info
-		expires := time.Now().Add(7 * 24 * time.Hour) // 7 days later
-		claims := jws.Claims{}
-		claims.Set("id", authUser.ID)
-		claims.Set("name", authUser.Name)
-		claims.SetAudience("localhost") // TODO: set audience correctly
-		claims.SetExpiration(expires)
-		tokenStr, _ := EncodeTokenStr(jwtKey, claims)
+		// set authUser digest to cookie as jwt
+		http.SetCookie(w,
+			authJWTCookie(genLoginCookie(r), jwtKey, *authUser))
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "tomatorpg-token",
-			Value:    tokenStr,
-			Expires:  expires,
-			Path:     "/",
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, hostURL, http.StatusFound)
+		http.Redirect(w, r, hostURL, http.StatusTemporaryRedirect)
 	}
 }

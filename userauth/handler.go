@@ -2,6 +2,7 @@ package userauth
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/mrjones/oauth"
 	"github.com/tomatorpg/tomatorpg/utils"
@@ -27,6 +28,10 @@ type OAuth1aConsumer interface {
 	GetRequestTokenAndUrl(callbackURL string) (token *oauth.RequestToken, url string, err error)
 }
 
+// CookieFactory generates cookie struct for auth interactions
+// (i.e. login session and logout)
+type CookieFactory func(r *http.Request) *http.Cookie
+
 // OAuth1aAuthURLFactory generates factory of authentication URL
 // to the oauth1a consumer and callback URL
 func OAuth1aAuthURLFactory(c OAuth1aConsumer, callbackURL string) AuthURLFactory {
@@ -49,7 +54,7 @@ func OAuth1aAuthURLFactory(c OAuth1aConsumer, callbackURL string) AuthURLFactory
 // RedirectHandler handles the generation and redirection to
 // authentication endpoint with proper parameters
 func RedirectHandler(getAuthURL AuthURLFactory, errURL string) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		url, err := getAuthURL(r)
 		if err != nil {
 			// TODO: redirect to the errURL with status messages
@@ -57,5 +62,14 @@ func RedirectHandler(getAuthURL AuthURLFactory, errURL string) http.HandlerFunc 
 			return
 		}
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-	})
+	}
+}
+
+// LogoutHandler makes a cookie of a given name expires
+func LogoutHandler(redirectURL string, getLoginCookie CookieFactory) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie := getLoginCookie(r)
+		cookie.Expires = time.Now().Add(-1 * time.Hour) // expires immediately
+		http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
+	}
 }

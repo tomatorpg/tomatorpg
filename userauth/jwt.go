@@ -2,6 +2,9 @@ package userauth
 
 import (
 	"fmt"
+	"net/http"
+
+	"github.com/tomatorpg/tomatorpg/models"
 
 	"gopkg.in/jose.v1/crypto"
 	"gopkg.in/jose.v1/jws"
@@ -24,4 +27,18 @@ func EncodeTokenStr(key string, claims jws.Claims) (tokenStr string, err error) 
 	serializedToken, err := jwtToken.Serialize([]byte(key))
 	tokenStr = string(serializedToken)
 	return
+}
+
+func authJWTCookie(cookie *http.Cookie, jwtKey string, authUser models.User) *http.Cookie {
+
+	// Create JWS claims with the user info
+	claims := jws.Claims{}
+	claims.Set("id", authUser.ID)
+	claims.Set("name", authUser.Name)
+	claims.SetAudience("localhost") // TODO: set audience correctly
+	claims.SetExpiration(cookie.Expires)
+
+	// encode token and store in cookies
+	cookie.Value, _ = EncodeTokenStr(jwtKey, claims)
+	return cookie
 }

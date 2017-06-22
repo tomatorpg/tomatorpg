@@ -100,6 +100,16 @@ func main() {
 	// TODO: make this optional on start up
 	initDB(db)
 
+	// login cookies
+	genLoginCookie := func(r *http.Request) *http.Cookie {
+		return &http.Cookie{
+			Name:     "tomatorpg-token",
+			Path:     "/",
+			HttpOnly: true,
+			Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days later
+		}
+	}
+
 	// websocket pubsub server
 	pubsubServer := pubsub.NewServer(
 		db,
@@ -120,6 +130,7 @@ func main() {
 	mainServer.Handle("/oauth2/google/callback", userauth.GoogleCallback(
 		userauth.GoogleConfig(publicURL),
 		db,
+		genLoginCookie,
 		jwtSecret,
 		publicURL,
 	))
@@ -130,6 +141,7 @@ func main() {
 	mainServer.Handle("/oauth2/facebook/callback", userauth.FacebookCallback(
 		userauth.FacebookConfig(publicURL),
 		db,
+		genLoginCookie,
 		jwtSecret,
 		publicURL,
 	))
@@ -140,6 +152,7 @@ func main() {
 	mainServer.Handle("/oauth2/github/callback", userauth.GithubCallback(
 		userauth.GithubConfig(publicURL),
 		db,
+		genLoginCookie,
 		jwtSecret,
 		publicURL,
 	))
@@ -153,17 +166,13 @@ func main() {
 	mainServer.Handle("/oauth2/twitter/callback", userauth.TwitterCallback(
 		userauth.TwitterConsumer(),
 		db,
+		userauth.TokenConsume,
+		genLoginCookie,
 		jwtSecret,
 		publicURL,
 	))
-	mainServer.HandleFunc("/oauth2/logout", func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{
-			Name:    "tomatorpg-token",
-			Path:    "/",
-			Expires: time.Now().Add(-1 * time.Hour),
-		})
-		http.Redirect(w, r, "/", http.StatusFound)
-	})
+	mainServer.Handle("/oauth2/logout",
+		userauth.LogoutHandler("/", genLoginCookie))
 	mainServer.Handle("/api.v1", pubsubServer)
 
 	applyMiddlewares := utils.Chain(
