@@ -70,8 +70,6 @@ func TestServer_ServeHTTP(t *testing.T) {
 	// make 2 separated ws connection to the dummy room server
 	u, _ := url.Parse(srv.URL)
 	u.Scheme = "ws"
-	conn := mustConnect(u.String())
-	t.Logf("connection success")
 
 	toTests := []struct {
 		desc string
@@ -126,6 +124,7 @@ func TestServer_ServeHTTP(t *testing.T) {
 	}
 
 	for i, toTest := range toTests {
+		conn := mustConnect(u.String())
 		resp := make(map[string]interface{})
 		rawResp := lzjson.NewNode()
 		go func() {
