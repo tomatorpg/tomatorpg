@@ -15,6 +15,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/tomatorpg/tomatorpg/assets"
+	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
 	"github.com/tomatorpg/tomatorpg/userauth"
 	"github.com/tomatorpg/tomatorpg/utils"
@@ -98,7 +99,12 @@ func main() {
 
 	// initialize database / migration
 	// TODO: make this optional on start up
-	initDB(db)
+	if err := models.AutoMigrate(db); err != nil {
+		logger.Printf("error: %s", err.Error())
+		panic("failed to migrate database")
+	} else {
+		logger.Printf("database migration done")
+	}
 
 	// login cookies
 	genLoginCookie := func(r *http.Request) *http.Cookie {
