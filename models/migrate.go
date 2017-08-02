@@ -9,5 +9,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		RoomActivity{},
 		User{},
 		UserEmail{},
+		Character{},
 	).Error
 }
