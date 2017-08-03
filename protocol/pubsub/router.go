@@ -17,6 +17,7 @@ func RPCs() (router *Router) {
 	router.Add("crud", "rooms", "create", createRoom)
 	router.Add("crud", "rooms", "list", listRooms)
 	router.Add("crud", "roomActivities", "create", createRoomActivity)
+	router.Add("crud", "roomActivities", "list", listRoomActivities)
 	router.Add("pubsub", "", "ping", ping)
 	router.Add("pubsub", "rooms", "replay", replayRoom)
 	router.Add("pubsub", "rooms", "join", joinRoom)
