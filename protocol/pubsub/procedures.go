@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -67,6 +68,10 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 
 	logger := utils.GetLogger(ctx)
 
+	// TODO: handle db error
+	db := GetDB(ctx)
+	tx := db.Begin()
+
 	// TODO: rewrite to pure crud
 	sess := GetSession(ctx)
 	if sess == nil {
@@ -98,8 +103,87 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		activity.Action = "message"
 	}
 
-	// TODO: extra triggers for the action "createCharacter"
+	// extra trigger(s) for different action
+	switch activity.Action {
+	case "createCharacter":
 
+		if sess.User.ID == 0 {
+			err = fmt.Errorf("visitor cannot create character in any room")
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+		// decode payload meta
+		char := models.RoomCharacter{}
+		json.Unmarshal([]byte(activity.MetaJSON), &char)
+		char.UserID = sess.User.ID
+		char.RoomID = sess.RoomInfo.ID
+
+		// TODO: check permission for the user in the room
+
+		// create character
+		dbh := tx.Create(&char)
+		if err = dbh.Error; err != nil {
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+		activity.MetaJSON, err = json.Marshal(char)
+		if err != nil {
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+	}
+
+	// create activity in DB
+	dbh := tx.Create(&activity)
+	if err = dbh.Error; err != nil {
+		logger.Log(
+			"at", "error",
+			"action", "roomActivity.create",
+			"user.id", activity.UserID,
+			"room.id", sess.RoomInfo.ID,
+			"activity.action", activity.Action,
+			"activity.message", activity.Message,
+			"activity.meta", activity.Meta,
+			"message", err.Error(),
+		)
+		tx.Rollback()
+		return
+	}
+
+	// success, log now
 	logger.Log(
 		"at", "info",
 		"action", "roomActivity.create",
@@ -109,11 +193,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		"activity.message", activity.Message,
 		"activity.meta", activity.Meta,
 	)
-
-	// create activity in DB
-	// TODO: handle db error
-	db := GetDB(ctx)
-	db.Create(&activity)
+	tx.Commit()
 
 	resp = nil
 	BroadcastActivity(sess.RoomChan, activity)
