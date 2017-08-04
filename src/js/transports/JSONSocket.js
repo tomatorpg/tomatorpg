@@ -83,18 +83,20 @@ export function joinRoom(roomID) {
 }
 
 /**
- * replayRoom
+ * listRoomActivities
  * @param {string} roomID for the room to join
+ * @param {Object} query structured query for the room activities
  * @return {Object} action suitable to dispatch to pseudo reducer and server
  */
-export function replayRoom(roomID) {
+export function listRoomActivities(roomID, query = { limit: 60 }) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.2',
-    group: 'pubsub',
-    entity: 'rooms',
+    group: 'crud',
+    entity: 'roomActivities',
     room_id: roomID,
-    method: 'replay',
+    method: 'list',
+    query,
   };
 }
 

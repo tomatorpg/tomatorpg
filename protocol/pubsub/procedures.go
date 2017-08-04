@@ -63,66 +63,6 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	return
 }
 
-func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
-
-	db := GetDB(ctx)
-	logger := utils.GetLogger(ctx)
-
-	// TODO: this is temp API, should do with CURD
-	//       should rewrite Replay as normal crud listing
-	//       to be independent from websocket
-	sess := GetSession(ctx)
-	if sess == nil {
-		err = fmt.Errorf("session not found")
-		return
-	}
-	if sess.Conn == nil {
-		err = fmt.Errorf("socket not found")
-		return
-	}
-	if sess.RoomChan == nil {
-		err = fmt.Errorf("the session is not currently in a room")
-		return
-	}
-
-	logger.Log(
-		"at", "info",
-		"action", "rooms.replay",
-		"room.id", sess.RoomInfo.ID,
-	)
-	resp = sess.RoomInfo.ID
-
-	// replay history (TODO: rewrite as pure CRUD)
-	historyCopy := make([]models.RoomActivity, 0, 100)
-	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
-	if len(historyCopy) > 0 {
-		logger.Log(
-			"at", "info",
-			"message", "start replaying activities to client",
-			"room.id", sess.RoomInfo.ID,
-		)
-		for _, activity := range historyCopy {
-			err := sess.Conn.WriteJSON(Broadcast{
-				Version: "0.2",
-				Entity:  "roomActivities",
-				Type:    "broadcast",
-				Data:    activity,
-			})
-			if err != nil {
-				sess.Conn.Close()
-				sess.RoomChan.Unsubscribe(sess.Conn)
-				logger.Log(
-					"at", "info",
-					"message", "error writing JSON to socket",
-					"error", err.Error(),
-				)
-				break
-			}
-		}
-	}
-	return
-}
-
 func createRoomActivity(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
 	logger := utils.GetLogger(ctx)

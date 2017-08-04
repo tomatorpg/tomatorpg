@@ -10,7 +10,7 @@ import Rooms from './Rooms';
 import Room from './Room';
 import { setRoomID } from '../stores/SessionStore';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
-import { createRoom, joinRoom, listRooms, replayRoom } from '../transports/JSONSocket';
+import { createRoom, joinRoom, listRooms, listRoomActivities } from '../transports/JSONSocket';
 
 const ConnectedNav = connect(
   (state) => {
@@ -46,7 +46,7 @@ const ConnectedRoom = connect(
       dispatch(clearMessages());
       dispatch(joinRoom(roomID));
       dispatch(setRoomID(roomID)); // TODO:need to check if room exists
-      dispatch(replayRoom(roomID));
+      dispatch(listRoomActivities(roomID));
     },
   }),
 )(Room);

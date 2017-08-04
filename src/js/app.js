@@ -32,7 +32,6 @@ server.subscribe('open', () => {
   const state = store.getState();
   if (state.session.roomID !== '') {
     server.dispatch(joinRoom(state.session.roomID));
-    // TODO: replay the history that this user might have missed since disconnected
   }
 });
 
@@ -71,6 +70,28 @@ server.subscribe('message', (message) => {
       }
     } else if (entity === '' && method === 'whoami') {
       store.dispatch(setUser(message.data));
+    } else if (entity === 'roomActivities' && method === 'list') {
+      console.log('roomActivities.list = data', data);
+      if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i += 1) {
+          const roomActivity = data[i];
+          const { action } = roomActivity;
+          switch (action) {
+            case 'message': {
+              const { message: messageText, user_id: userID } = roomActivity;
+              store.dispatch(addMessage({
+                message: messageText,
+                userID,
+              }));
+              break;
+            }
+            default: {
+              // do nothing
+              console.log('TomatoRPG: received unknown roomActivities', message);
+            }
+          }
+        }
+      }
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
     }
