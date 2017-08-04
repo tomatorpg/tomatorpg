@@ -2,9 +2,9 @@ package models
 
 import "time"
 
-// Character stores information about characters
+// RoomCharacter stores information about characters
 // (player or non-player)
-type Character struct {
+type RoomCharacter struct {
 	ID        uint       `json:"id" gorm:"primary_key"`
 	RoomID    uint       `json:"room_id"`
 	UserID    uint       `json:"user_id"`

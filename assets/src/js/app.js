@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
+import roomCharactersReducer from './stores/RoomCharactersStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer, { setUser } from './stores/SessionStore';
 import Transport, { createReducer, whoami, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
@@ -19,6 +20,7 @@ const server = new Transport(resolveWsPath(window.location, '/api.v1'));
 const store = createStore(
   combineReducers({
     roomActivities: roomActivityReducer,
+    roomCharacters: roomCharactersReducer,
     rooms: roomsReducer,
     session: sessionReducer,
     transport: createReducer(server),

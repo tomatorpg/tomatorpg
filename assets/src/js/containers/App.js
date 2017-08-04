@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
+import Character from './Character';
 import { setRoomID } from '../stores/SessionStore';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
 import { createRoom, joinRoom, listRooms, listRoomActivities } from '../transports/JSONSocket';
@@ -51,6 +52,17 @@ const ConnectedRoom = connect(
   }),
 )(Room);
 
+const ConnectedCharacter = connect(
+  (state) => {
+    const { session } = state;
+    console.log('session', session);
+    return { session };
+  },
+  dispatch => ({
+    dispatch,
+  }),
+)(Character);
+
 const App = () => (
   <Router>
     <div>
@@ -71,6 +83,15 @@ const App = () => (
           render={({ match }) =>
           (<ConnectedRoom
             roomID={match.params.roomID}
+          />)}
+        />
+        <Route
+          exact
+          path="/rooms/:roomID/characters/create"
+          render={({ match, history }) =>
+          (<ConnectedCharacter
+            roomID={match.params.roomID}
+            postSubmit={() => history.push(`/rooms/${match.params.roomID}`)}
           />)}
         />
       </main>

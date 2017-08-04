@@ -52,16 +52,16 @@ export function messageInRoom(message) {
  * @param {string} name of the character to create
  * @return {Object} action suitable to dispatch to pseudo reducer and server
  */
-export function createCharInRoom(name) {
+export function createCharInRoom(character) {
   return {
     type: JSONSocketCmd,
     tomatorpc: '0.2',
-    group: 'pubsub',
+    group: 'crud',
     entity: 'roomActivities',
     method: 'create',
     payload: {
       action: 'createCharacter',
-      name,
+      meta: character,
     },
   };
 }
