@@ -4,6 +4,7 @@ react/forbid-prop-types: 'warn'
 import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import Modal from 'react-modal';
 
 import Nav from './Nav';
 import Rooms from './Rooms';
@@ -101,22 +102,42 @@ const App = () => (
           exact
           path="/rooms/:roomID/characters"
           render={({ match, history }) =>
-          (<ConnectedRoomCharacters
-            roomID={match.params.roomID}
-            onClose={() => history.push(`/rooms/${match.params.roomID}`)}
-            createHandler={() => history.push(`/rooms/${match.params.roomID}/characters/create`)}
-            closeHandler={() => history.push(`/rooms/${match.params.roomID}`)}
-          />)}
+          (
+            <Modal
+              isOpen
+              contentLabel="character-form"
+              overlayClassName="modal-overlay characters-list-wrapper"
+            >
+              <div className="modal-actions">
+                <button type="button" onClick={() => history.push(`/rooms/${match.params.roomID}`)}>Close</button>
+              </div>
+              <ConnectedRoomCharacters
+                roomID={match.params.roomID}
+                onClose={() => history.push(`/rooms/${match.params.roomID}`)}
+                createHandler={() => history.push(`/rooms/${match.params.roomID}/characters/create`)}
+              />
+            </Modal>
+          )}
         />
         <Route
           exact
           path="/rooms/:roomID/characters/create"
           render={({ match, history }) =>
-          (<ConnectedCharacter
-            roomID={match.params.roomID}
-            postSubmit={() => history.push(`/rooms/${match.params.roomID}/characters`)}
-            closeHandler={() => history.push(`/rooms/${match.params.roomID}/characters`)}
-          />)}
+          (
+            <Modal
+              isOpen
+              contentLabel="character-form"
+              overlayClassName="modal-overlay character-form-wrapper"
+            >
+              <div className="modal-actions">
+                <button type="button" onClick={() => history.push(`/rooms/${match.params.roomID}/characters`)}>Close</button>
+              </div>
+              <ConnectedCharacter
+                roomID={match.params.roomID}
+                postSubmit={() => history.push(`/rooms/${match.params.roomID}/characters`)}
+              />
+            </Modal>
+          )}
         />
       </main>
     </div>

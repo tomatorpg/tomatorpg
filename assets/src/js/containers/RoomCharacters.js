@@ -4,20 +4,12 @@ react/forbid-prop-types: 'warn',
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import Modal from 'react-modal';
 
 class RoomCharacters extends Component {
   render() {
-    const { roomCharacters, closeHandler, createHandler } = this.props;
+    const { roomCharacters, createHandler } = this.props;
     return (
-      <Modal
-        isOpen
-        contentLabel="character-form"
-        overlayClassName="modal-overlay characters-list"
-      >
-        <div className="modal-actions">
-          <button type="button" onClick={() => closeHandler()}>Close</button>
-        </div>
+      <div className="character-list">
         <h2>Characters</h2>
         <div>
           <button type="button" onClick={() => createHandler()}>Create</button>
@@ -29,20 +21,18 @@ class RoomCharacters extends Component {
             </div>
           ))}
         </div>
-      </Modal>
+      </div>
     );
   }
 }
 
 RoomCharacters.propTypes = {
   roomCharacters: PropTypes.array,
-  closeHandler: PropTypes.func,
   createHandler: PropTypes.func,
 };
 
 RoomCharacters.defaultProps = {
   roomCharacters: [],
-  closeHandler: () => {},
   createHandler: () => {},
 };
 

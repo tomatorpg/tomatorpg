@@ -4,7 +4,6 @@ react/forbid-prop-types: 'warn',
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import Modal from 'react-modal';
 import { createCharInRoom } from '../transports/JSONSocket';
 import { defaultState as defaultSession } from '../stores/SessionStore';
 
@@ -20,16 +19,8 @@ class Character extends Component {
     postSubmit(); // run after dispatch
   }
   render() {
-    const { closeHandler } = this.props;
     return (
-      <Modal
-        isOpen
-        contentLabel="character-form"
-        overlayClassName="modal-overlay character-form"
-      >
-        <div className="modal-actions">
-          <button type="button" onClick={() => closeHandler()}>Close</button>
-        </div>
+      <div className="character-form">
         <h2>Create Character</h2>
         <form onSubmit={evt => this.submitHandler(evt)}>
           <div className="field">
@@ -51,7 +42,7 @@ class Character extends Component {
             <button className="submit" type="submit">Create</button>
           </div>
         </form>
-      </Modal>
+      </div>
     );
   }
 }
@@ -60,14 +51,12 @@ Character.propTypes = {
   dispatch: PropTypes.func,
   postSubmit: PropTypes.func,
   session: PropTypes.object,
-  closeHandler: PropTypes.func,
 };
 
 Character.defaultProps = {
   dispatch: () => {},
   postSubmit: () => {},
   session: defaultSession,
-  closeHandler: () => {},
 };
 
 
