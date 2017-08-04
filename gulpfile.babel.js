@@ -5,7 +5,7 @@ import htmlmin from 'gulp-htmlmin';
 gulpHelp(gulp);
 
 gulp.task('build:html', 'minify html template for assets', () =>
-  gulp.src('src/html/**/*.html')
+  gulp.src('assets/src/html/**/*.html')
     .pipe(htmlmin({ collapseWhitespace: true }))
     .pipe(gulp.dest('assets/dist/html')));
 
