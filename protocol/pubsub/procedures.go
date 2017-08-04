@@ -97,6 +97,9 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
+
+	// TODO: extra triggers for the action "createCharacter"
+
 	logger.Log(
 		"at", "info",
 		"action", "roomActivity.create",
@@ -104,6 +107,7 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		"room.id", sess.RoomInfo.ID,
 		"activity.action", activity.Action,
 		"activity.message", activity.Message,
+		"activity.meta", activity.Meta,
 	)
 
 	// create activity in DB

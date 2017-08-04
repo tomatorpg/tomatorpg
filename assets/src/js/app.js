@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
-import roomCharactersReducer from './stores/RoomCharactersStore';
+import roomCharactersReducer, { add as addCharacter } from './stores/RoomCharactersStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer, { setUser } from './stores/SessionStore';
 import Transport, { createReducer, whoami, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
@@ -87,6 +87,11 @@ server.subscribe('message', (message) => {
               }));
               break;
             }
+            case 'createCharacter': {
+              const { meta: character } = roomActivity;
+              store.dispatch(addCharacter(character));
+              break;
+            }
             default: {
               // do nothing
               console.log('TomatoRPG: received unknown roomActivities', message);
@@ -94,6 +99,8 @@ server.subscribe('message', (message) => {
           }
         }
       }
+    } else if (entity === 'roomActivities' && method === 'create') {
+      console.log('roomActivities.list = data', data);
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
     }

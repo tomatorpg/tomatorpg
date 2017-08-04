@@ -20,12 +20,16 @@ class Character extends Component {
     postSubmit(); // run after dispatch
   }
   render() {
+    const { closeHandler } = this.props;
     return (
       <Modal
         isOpen
         contentLabel="character-form"
         overlayClassName="modal-overlay character-form"
       >
+        <div className="modal-actions">
+          <button type="button" onClick={() => closeHandler()}>Close</button>
+        </div>
         <h2>Create Character</h2>
         <form onSubmit={evt => this.submitHandler(evt)}>
           <div className="field">
@@ -43,6 +47,9 @@ class Character extends Component {
               ref={(input) => { this.descInput = input; }}
             />
           </div>
+          <div className="form-actions">
+            <button className="submit" type="submit">Create</button>
+          </div>
         </form>
       </Modal>
     );
@@ -53,12 +60,14 @@ Character.propTypes = {
   dispatch: PropTypes.func,
   postSubmit: PropTypes.func,
   session: PropTypes.object,
+  closeHandler: PropTypes.func,
 };
 
 Character.defaultProps = {
   dispatch: () => {},
   postSubmit: () => {},
   session: defaultSession,
+  closeHandler: () => {},
 };
 
 

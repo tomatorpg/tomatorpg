@@ -32,7 +32,7 @@ class Room extends Component {
   }
 
   render() {
-    const { roomActivities } = this.props;
+    const { roomActivities, listCharacters } = this.props;
     const messagesSummary = (roomActivities.length > 0) ?
       roomActivities.reduce((acc, activity, index) => {
         const { type, message: { message = '', userID = 0 } } = activity;
@@ -79,12 +79,14 @@ class Room extends Component {
 
 Room.propTypes = {
   dispatch: PropTypes.func,
+  listCharacters: PropTypes.func,
   onLoad: PropTypes.func,
   roomActivities: PropTypes.array,
 };
 
 Room.defaultProps = {
   dispatch: () => {},
+  listCharacters: () => {},
   onLoad: () => {},
   roomActivities: [],
 };

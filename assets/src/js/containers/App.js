@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Nav from './Nav';
 import Rooms from './Rooms';
 import Room from './Room';
+import RoomCharacters from './RoomCharacters';
 import Character from './Character';
 import { setRoomID } from '../stores/SessionStore';
 import { clear as clearMessages } from '../stores/RoomActivityStore';
@@ -52,6 +53,16 @@ const ConnectedRoom = connect(
   }),
 )(Room);
 
+const ConnectedRoomCharacters = connect(
+  (state) => {
+    const { roomCharacters } = state;
+    return { roomCharacters };
+  },
+  dispatch => ({
+    dispatch,
+  }),
+)(RoomCharacters);
+
 const ConnectedCharacter = connect(
   (state) => {
     const { session } = state;
@@ -80,9 +91,21 @@ const App = () => (
         />
         <Route
           path="/rooms/:roomID"
-          render={({ match }) =>
+          render={({ match, history }) =>
           (<ConnectedRoom
             roomID={match.params.roomID}
+            listCharacters={() => history.push(`/rooms/${match.params.roomID}/characters`)}
+          />)}
+        />
+        <Route
+          exact
+          path="/rooms/:roomID/characters"
+          render={({ match, history }) =>
+          (<ConnectedRoomCharacters
+            roomID={match.params.roomID}
+            onClose={() => history.push(`/rooms/${match.params.roomID}`)}
+            createHandler={() => history.push(`/rooms/${match.params.roomID}/characters/create`)}
+            closeHandler={() => history.push(`/rooms/${match.params.roomID}`)}
           />)}
         />
         <Route
@@ -91,7 +114,8 @@ const App = () => (
           render={({ match, history }) =>
           (<ConnectedCharacter
             roomID={match.params.roomID}
-            postSubmit={() => history.push(`/rooms/${match.params.roomID}`)}
+            postSubmit={() => history.push(`/rooms/${match.params.roomID}/characters`)}
+            closeHandler={() => history.push(`/rooms/${match.params.roomID}/characters`)}
           />)}
         />
       </main>
