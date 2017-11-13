@@ -22,3 +22,6 @@ gin-bin
 
 # ignore vendor folder
 /vendor
+
+# Ingore DS Store
+.DS_Store

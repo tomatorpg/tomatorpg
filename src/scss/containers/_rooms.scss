@@ -1,15 +1,25 @@
 #rooms{
+  .create-button{
+    text-align: right;
+  }
   ul.rooms {
     display: block;
     list-style-type: none;
     padding: 0.3em;
-    margin: 0 0 0.5em;
-    width: 20vw;
-    background-color: rgba(0, 0, 0, 0.1);
+    border: 2px solid #DDDDDD;
+    margin-top: 1em;
     li {
       display: flex;
-      margin: 2px 0;
-      padding: 0.1em 0.5em;
+      border-bottom: 1px solid #DDDDDD;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 0.5em;
+      padding-top: 0.5em;
+
+      &:last-child{
+        border-bottom: 0;
+      }
+
       .room-name {
         flex: 10;
       }

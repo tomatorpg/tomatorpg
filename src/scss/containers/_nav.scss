@@ -7,6 +7,7 @@
     font-size: 1.2em;
     padding: 0;
     margin: 0 0 0.5em;
+    color: #FFFFFF;
     box-shadow: 1px 1px 0.5em rgba(0, 0, 0, 0.8);
     text-align: right;
 
@@ -17,7 +18,7 @@
         padding: 0 1em;
         text-decoration: none;
         color: rgba(240, 240, 240, 1);
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(214, 64, 64, 1);
         transition: all 0.4s;
 
         &:hover {
@@ -27,5 +28,5 @@
       }
     }
   }
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(214, 64, 64, 1);
 }
