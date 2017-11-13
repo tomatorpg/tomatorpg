@@ -6,7 +6,6 @@
     display: block;
     list-style-type: none;
     padding: 0.3em;
-    margin: 0 0 0.5em;
     border: 2px solid #DDDDDD;
     margin-top: 1em;
     li {
@@ -14,6 +13,8 @@
       border-bottom: 1px solid #DDDDDD;
       align-items: center;
       justify-content: center;
+      padding-bottom: 0.5em;
+      padding-top: 0.5em;
 
       &:last-child{
         border-bottom: 0;
