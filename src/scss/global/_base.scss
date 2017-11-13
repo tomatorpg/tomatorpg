@@ -4,6 +4,21 @@ body {
   font-family: sans-serif;
 }
 
+a{
+  color: #D64040;
+  &:hover{
+    color: #c13a3a;
+  }
+}
+
+.btn-primary{
+  background-color: #D64040;
+  border: 0;
+  &:hover{
+    background-color: #c13a3a;
+  }
+}
+
 main {
   padding: 1em;
 }
