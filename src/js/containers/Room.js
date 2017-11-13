@@ -52,16 +52,26 @@ class Room extends Component {
       }, []) :
       <div className="no-message">No message yet</div>;
     return (
-      <div id="room">
-        <div className="messages-wrapper" ref={(element) => { this.messageWrapper = element; }}>
-          <div className="messages" ref={(messages) => { this.messageBox = messages; }}>
-            {messagesSummary}
+      <div className="container">
+        <div id="room">
+          <div className="messages-wrapper" ref={(element) => { this.messageWrapper = element; }}>
+            <div className="area-header">
+              Chat
+            </div>
+            <div className="messages" ref={(messages) => { this.messageBox = messages; }}>
+              {messagesSummary}
+            </div>
           </div>
+          <form className="room-form" onSubmit={evt => this.submitHandler(evt)}>
+            <div className="textarea-wrapper">
+              <div className="area-header">
+                Your Messages
+              </div>
+              <textarea type="text" autoFocus ref={(input) => { this.textInput = input; }} />
+              <button className="btn btn-primary" type="submit">Send</button>
+            </div>
+          </form>
         </div>
-        <form className="room-form" onSubmit={evt => this.submitHandler(evt)}>
-          <input type="text" autoFocus ref={(input) => { this.textInput = input; }} />
-          <button type="submit">Submit</button>
-        </form>
       </div>
     );
   }
