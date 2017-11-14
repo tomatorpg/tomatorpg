@@ -63,6 +63,7 @@ func (ch *dummyChannel) Subscribe(conn pubsub.MessageWriteCloser) {
 
 func (ch *dummyChannel) Unsubscribe(conn pubsub.MessageWriteCloser) {
 	delete(ch.conns, conn)
+	conn.Close()
 }
 
 func (ch *dummyChannel) BroadcastJSON(v interface{}) {
@@ -185,6 +186,19 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 			}
 		}
 
+		receive := func() <-chan *map[string]interface{} {
+			out := make(chan *map[string]interface{})
+			go func() {
+				v := make(map[string]interface{})
+				if err := conn.ReadJSON(&v); err != nil {
+					t.Logf("failed to read conn: %s", err)
+					return
+				}
+				t.Logf("[req: %d] server received: %#v", reqID, v)
+			}()
+			return out
+		}
+
 		go func() {
 			// register connection to chan
 			wsChan.Subscribe(conn)
@@ -193,9 +207,14 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 
 			// dummy loop for connection handle
 			for {
-				v := make(map[string]interface{})
-				conn.ReadJSON(&v)
-				t.Logf("[req: %d] server received: %#v", reqID, v)
+				timeout := time.After(5 * time.Second)
+				received := receive()
+				select {
+				case <-timeout:
+					t.Logf("timeout")
+				case <-received:
+					// do nothing
+				}
 			}
 		}()
 	}
