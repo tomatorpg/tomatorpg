@@ -63,6 +63,7 @@ func (ch *dummyChannel) Subscribe(conn pubsub.MessageWriteCloser) {
 
 func (ch *dummyChannel) Unsubscribe(conn pubsub.MessageWriteCloser) {
 	delete(ch.conns, conn)
+	conn.Close()
 }
 
 func (ch *dummyChannel) BroadcastJSON(v interface{}) {
