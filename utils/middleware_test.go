@@ -68,6 +68,10 @@ func TestApplyRequestID(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://foobar.com/hello/world", nil)
 	srv.ServeHTTP(w, r)
+
+	if (catchID != true) {
+		t.Error("internal handler has not been running")
+	}
 }
 
 func TestApplyLogger(t *testing.T) {
