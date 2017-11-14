@@ -4,10 +4,11 @@
   "description": "Simple server for creating HTTP chatroom that's suitable for TRPG games online.",
   "main": "index.js",
   "scripts": {
-    "build": "npm-run-all build:webpack build:html build:golang:assets build:golang:server",
+    "build": "npm-run-all build:webpack build:html build:images build:golang:assets build:golang:server",
     "build:golang:assets": "go generate assets/generate.go",
     "build:golang:server": "go build ./cmd/tomatorpg",
     "build:html": "gulp build:html",
+    "build:images": "gulp build:images",
     "build:webpack": "NODE_ENV=production webpack",
     "dev": "npm-run-all --parallel dev:webpack dev:gin",
     "dev:webpack": "NODE_ENV=development webpack-dev-server",
