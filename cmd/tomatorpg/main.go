@@ -128,6 +128,7 @@ func main() {
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
 	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
+	mainServer.Handle("/assets/images/", http.StripPrefix("/assets", fs))
 	mainServer.Handle("/", handlePage(
 		"index.html",
 		struct{ ScriptPath string }{ScriptPath: webpackDevHost},
