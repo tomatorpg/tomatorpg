@@ -9,7 +9,6 @@
     "build:golang:server": "go build ./cmd/tomatorpg",
     "build:images": "gulp build:images",
     "build:html": "gulp build:html",
-    "build:images": "gulp build:images",
     "build:webpack": "NODE_ENV=production webpack",
     "dev": "npm-run-all --parallel dev:webpack dev:gin",
     "dev:webpack": "NODE_ENV=development webpack-dev-server",
@@ -26,6 +25,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bootstrap": "4.0.0-beta.2",
     "prop-types": "^15.5.10",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
