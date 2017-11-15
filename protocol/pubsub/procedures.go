@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -63,69 +64,13 @@ func listRooms(ctx context.Context, req interface{}) (resp interface{}, err erro
 	return
 }
 
-func replayRoom(ctx context.Context, req interface{}) (resp interface{}, err error) {
-
-	db := GetDB(ctx)
-	logger := utils.GetLogger(ctx)
-
-	// TODO: this is temp API, should do with CURD
-	//       should rewrite Replay as normal crud listing
-	//       to be independent from websocket
-	sess := GetSession(ctx)
-	if sess == nil {
-		err = fmt.Errorf("session not found")
-		return
-	}
-	if sess.Conn == nil {
-		err = fmt.Errorf("socket not found")
-		return
-	}
-	if sess.RoomChan == nil {
-		err = fmt.Errorf("the session is not currently in a room")
-		return
-	}
-
-	logger.Log(
-		"at", "info",
-		"action", "rooms.replay",
-		"room.id", sess.RoomInfo.ID,
-	)
-	resp = sess.RoomInfo.ID
-
-	// replay history (TODO: rewrite as pure CRUD)
-	historyCopy := make([]models.RoomActivity, 0, 100)
-	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
-	if len(historyCopy) > 0 {
-		logger.Log(
-			"at", "info",
-			"message", "start replaying activities to client",
-			"room.id", sess.RoomInfo.ID,
-		)
-		for _, activity := range historyCopy {
-			err := sess.Conn.WriteJSON(Broadcast{
-				Version: "0.2",
-				Entity:  "roomActivities",
-				Type:    "broadcast",
-				Data:    activity,
-			})
-			if err != nil {
-				sess.Conn.Close()
-				sess.RoomChan.Unsubscribe(sess.Conn)
-				logger.Log(
-					"at", "info",
-					"message", "error writing JSON to socket",
-					"error", err.Error(),
-				)
-				break
-			}
-		}
-	}
-	return
-}
-
 func createRoomActivity(ctx context.Context, req interface{}) (resp interface{}, err error) {
 
 	logger := utils.GetLogger(ctx)
+
+	// TODO: handle db error
+	db := GetDB(ctx)
+	tx := db.Begin()
 
 	// TODO: rewrite to pure crud
 	sess := GetSession(ctx)
@@ -157,6 +102,88 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 	if activity.Action == "" {
 		activity.Action = "message"
 	}
+
+	// extra trigger(s) for different action
+	switch activity.Action {
+	case "createCharacter":
+
+		if sess.User.ID == 0 {
+			err = fmt.Errorf("visitor cannot create character in any room")
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+		// decode payload meta
+		char := models.RoomCharacter{}
+		json.Unmarshal([]byte(activity.MetaJSON), &char)
+		char.UserID = sess.User.ID
+		char.RoomID = sess.RoomInfo.ID
+
+		// TODO: check permission for the user in the room
+
+		// create character
+		dbh := tx.Create(&char)
+		if err = dbh.Error; err != nil {
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+		activity.MetaJSON, err = json.Marshal(char)
+		if err != nil {
+			logger.Log(
+				"at", "error",
+				"action", "roomActivity.create",
+				"user.id", activity.UserID,
+				"room.id", sess.RoomInfo.ID,
+				"activity.action", activity.Action,
+				"activity.message", activity.Message,
+				"activity.meta", activity.Meta,
+				"message", err.Error(),
+			)
+			tx.Rollback()
+			return
+		}
+
+	}
+
+	// create activity in DB
+	dbh := tx.Create(&activity)
+	if err = dbh.Error; err != nil {
+		logger.Log(
+			"at", "error",
+			"action", "roomActivity.create",
+			"user.id", activity.UserID,
+			"room.id", sess.RoomInfo.ID,
+			"activity.action", activity.Action,
+			"activity.message", activity.Message,
+			"activity.meta", activity.Meta,
+			"message", err.Error(),
+		)
+		tx.Rollback()
+		return
+	}
+
+	// success, log now
 	logger.Log(
 		"at", "info",
 		"action", "roomActivity.create",
@@ -164,15 +191,47 @@ func createRoomActivity(ctx context.Context, req interface{}) (resp interface{},
 		"room.id", sess.RoomInfo.ID,
 		"activity.action", activity.Action,
 		"activity.message", activity.Message,
+		"activity.meta", activity.Meta,
 	)
-
-	// create activity in DB
-	// TODO: handle db error
-	db := GetDB(ctx)
-	db.Create(&activity)
+	tx.Commit()
 
 	resp = nil
 	BroadcastActivity(sess.RoomChan, activity)
+	return
+}
+
+func listRoomActivities(ctx context.Context, req interface{}) (resp interface{}, err error) {
+	db := GetDB(ctx)
+	logger := utils.GetLogger(ctx)
+
+	// TODO: this is temp API, should do with CURD
+	//       should rewrite Replay as normal crud listing
+	//       to be independent from websocket session
+	sess := GetSession(ctx)
+	if sess == nil {
+		err = fmt.Errorf("session not found")
+		return
+	}
+	if sess.Conn == nil {
+		err = fmt.Errorf("socket not found")
+		return
+	}
+	if sess.RoomChan == nil {
+		err = fmt.Errorf("the session is not currently in a room")
+		return
+	}
+
+	logger.Log(
+		"at", "info",
+		"action", "roomActivities.list",
+		"room.id", sess.RoomInfo.ID, // TODO: decode from request
+	)
+	resp = sess.RoomInfo.ID
+
+	// replay history (TODO: rewrite as pure CRUD)
+	historyCopy := make([]models.RoomActivity, 0, 100)
+	db.Find(&historyCopy, "room_id = ?", sess.RoomInfo.ID)
+	resp = historyCopy
 	return
 }
 

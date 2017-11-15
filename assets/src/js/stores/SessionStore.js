@@ -1,4 +1,4 @@
-const defaultState = {
+export const defaultState = {
   roomID: '',
   token: '',
   user: {

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // RoomActivity stores activities in a room
 type RoomActivity struct {
@@ -20,5 +23,19 @@ type RoomActivity struct {
 	Action  string `json:"action"`
 	Message string `json:"message"`
 
+	// MetaJSON JSON data for the activity, any valid JSON
+	MetaJSON json.RawMessage `gorm:"-" json:"meta,omitempty"`
+	Meta     string          `json:"-"`
+
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// BeforeSave implements BeforeSave callback for gorm
+func (activity *RoomActivity) BeforeSave() {
+	activity.Meta = string(activity.MetaJSON)
+}
+
+// AfterFind implements AfterFind callback for gorm
+func (activity *RoomActivity) AfterFind() {
+	activity.MetaJSON = []byte(activity.Meta)
 }

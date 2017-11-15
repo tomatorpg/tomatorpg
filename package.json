@@ -7,6 +7,7 @@
     "build": "npm-run-all build:webpack build:html build:images build:golang:assets build:golang:server",
     "build:golang:assets": "go generate assets/generate.go",
     "build:golang:server": "go build ./cmd/tomatorpg",
+    "build:images": "gulp build:images",
     "build:html": "gulp build:html",
     "build:images": "gulp build:images",
     "build:webpack": "NODE_ENV=production webpack",
@@ -18,7 +19,7 @@
     "devfront:build-and-run": "npm-run-all build:golang:server devfront:run",
     "test": "npm-run-all test:jest test:eslint test:go",
     "test:js": "npm-run-all test:jest test:eslint",
-    "test:eslint": "eslint ./src/js ./__tests__",
+    "test:eslint": "eslint ./assets/src/js ./assets/__tests__",
     "test:jest": "jest",
     "test:go": "go test -v -cover ./assets/... ./cmd/... ./models/... ./protocol/... ./userauth/... ./utils/..."
   },
@@ -28,16 +29,16 @@
     "prop-types": "^15.5.10",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
+    "react-modal": "^2.2.2",
     "react-redux": "^5.0.5",
     "react-router-dom": "next",
     "redux": "^3.6.0",
-    "redux-logger": "^3.0.6",
-    "uglifyjs-webpack-plugin": "^0.4.3"
+    "redux-logger": "^3.0.6"
   },
   "devDependencies": {
     "babel-core": "^6.24.1",
     "babel-eslint": "^7.2.3",
-    "babel-loader": "^7.0.0",
+    "babel-loader": "^7.1.1",
     "babel-polyfill": "^6.23.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-es2016": "^6.24.1",
@@ -50,18 +51,20 @@
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^5.0.3",
     "eslint-plugin-react": "^7.0.1",
-    "extract-text-webpack-plugin": "^2.1.0",
+    "extract-text-webpack-plugin": "^3.0.0",
     "gulp": "gulpjs/gulp.git#4.0",
     "gulp-help-four": "^0.2.3",
     "gulp-htmlmin": "^3.0.0",
+    "gulp-imagemin": "^3.3.0",
     "jest": "^20.0.3",
     "node-sass": "^4.5.3",
     "npm-run-all": "^4.0.2",
     "react-hot-loader": "^1.3.1",
-    "sass-loader": "^6.0.5",
+    "sass-loader": "^6.0.6",
     "style-loader": "^0.17.0",
     "uglify-js": "^3.0.7",
-    "webpack": "^2.5.1",
-    "webpack-dev-server": "^2.4.5"
+    "uglifyjs-webpack-plugin": "^0.4.6",
+    "webpack": "^3.4.1",
+    "webpack-dev-server": "^2.6.1"
   }
 }

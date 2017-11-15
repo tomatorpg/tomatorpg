@@ -66,7 +66,7 @@ const scriptHost = getScriptHost();
 module.exports = {
   entry: [
     'babel-polyfill',
-    './src/js/app.js',
+    './assets/src/js/app.js',
   ],
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
@@ -77,7 +77,7 @@ module.exports = {
     rules: [
       {
         test: /\.(js|jsx)$/,
-        include: path.join(__dirname, 'src', 'js'),
+        include: path.join(__dirname, 'assets', 'src', 'js'),
         use: [
           'react-hot-loader',
           'babel-loader',

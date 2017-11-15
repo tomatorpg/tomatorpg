@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 
 import App from './containers/App';
 import roomActivityReducer, { add as addMessage } from './stores/RoomActivityStore';
+import roomCharactersReducer, { add as addCharacter } from './stores/RoomCharactersStore';
 import roomsReducer, { set as setRooms } from './stores/RoomsStore';
 import sessionReducer, { setUser } from './stores/SessionStore';
 import Transport, { createReducer, whoami, joinRoom, listRooms, resolveWsPath } from './transports/JSONSocket';
@@ -19,6 +20,7 @@ const server = new Transport(resolveWsPath(window.location, '/api.v1'));
 const store = createStore(
   combineReducers({
     roomActivities: roomActivityReducer,
+    roomCharacters: roomCharactersReducer,
     rooms: roomsReducer,
     session: sessionReducer,
     transport: createReducer(server),
@@ -32,7 +34,6 @@ server.subscribe('open', () => {
   const state = store.getState();
   if (state.session.roomID !== '') {
     server.dispatch(joinRoom(state.session.roomID));
-    // TODO: replay the history that this user might have missed since disconnected
   }
 });
 
@@ -71,6 +72,35 @@ server.subscribe('message', (message) => {
       }
     } else if (entity === '' && method === 'whoami') {
       store.dispatch(setUser(message.data));
+    } else if (entity === 'roomActivities' && method === 'list') {
+      console.log('roomActivities.list = data', data);
+      if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i += 1) {
+          const roomActivity = data[i];
+          const { action } = roomActivity;
+          switch (action) {
+            case 'message': {
+              const { message: messageText, user_id: userID } = roomActivity;
+              store.dispatch(addMessage({
+                message: messageText,
+                userID,
+              }));
+              break;
+            }
+            case 'createCharacter': {
+              const { meta: character } = roomActivity;
+              store.dispatch(addCharacter(character));
+              break;
+            }
+            default: {
+              // do nothing
+              console.log('TomatoRPG: received unknown roomActivities', message);
+            }
+          }
+        }
+      }
+    } else if (entity === 'roomActivities' && method === 'create') {
+      console.log('roomActivities.list = data', data);
     } else {
       console.log(`TomatoRPG: ${message.entity}.${message.method} ${message.status}`);
     }

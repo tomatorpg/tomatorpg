@@ -32,7 +32,8 @@ class Room extends Component {
   }
 
   render() {
-    const { roomActivities } = this.props;
+    const { roomActivities, listCharacters } = this.props;
+    console.log('listCharacters', listCharacters);
     const messagesSummary = (roomActivities.length > 0) ?
       roomActivities.reduce((acc, activity, index) => {
         const { type, message: { message = '', userID = 0 } } = activity;
@@ -68,7 +69,10 @@ class Room extends Component {
                 Your Messages
               </div>
               <textarea type="text" autoFocus ref={(input) => { this.textInput = input; }} />
-              <button className="btn btn-primary" type="submit">Send</button>
+              <div className="actions">
+                <button className="btn" type="button" onClick={() => listCharacters()}>Character</button>
+                <button className="btn btn-primary" type="submit">Send</button>
+              </div>
             </div>
           </form>
         </div>
@@ -79,12 +83,14 @@ class Room extends Component {
 
 Room.propTypes = {
   dispatch: PropTypes.func,
+  listCharacters: PropTypes.func,
   onLoad: PropTypes.func,
   roomActivities: PropTypes.array,
 };
 
 Room.defaultProps = {
   dispatch: () => {},
+  listCharacters: () => {},
   onLoad: () => {},
   roomActivities: [],
 };
