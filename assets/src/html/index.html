@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tomato RPG</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+  <title>{{ .PageTitle }}</title>
   <link rel="icon" href="/assets/images/favicon.ico" type="image/x-icon"/>
+{{ range $index, $style := .Styles }}
+  <link rel="stylesheet" type="text/css" href="{{ $style }}">
+{{ end }}
 </head>
 <body>
   <div id="app">Loading...</div>
-  <script src="{{ .ScriptPath }}/assets/js/common.js"></script>
+{{ range $index, $script := .Scripts }}
+  <script src="{{ $script }}"></script>
+{{ end }}
 </body>
 </html>

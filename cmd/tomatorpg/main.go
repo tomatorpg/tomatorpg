@@ -22,6 +22,7 @@ import (
 )
 
 var port uint64
+var isDev bool
 var webpackDevHost string
 var publicURL string
 var jwtSecret string
@@ -56,6 +57,7 @@ func init() {
 	// check if in development mode
 	// if so, try to load webpack dev server host
 	if os.Getenv("NODE_ENV") == "development" {
+		isDev = true
 		if webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST"); webpackDevHost == "" {
 			webpackDevHost = "http://localhost:8081" // default, if not set
 		}
@@ -70,6 +72,9 @@ func init() {
 	if jwtSecret = os.Getenv("JWT_SECRET"); jwtSecret == "" {
 		jwtSecret = "abcdef"
 	}
+
+	// log format
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 }
 
 /**
@@ -130,14 +135,34 @@ func main() {
 		logger.Print("warning: No authentication provider is properly setup. Please setup at least one.")
 	}
 
+	// stylesheet(s) to use
+	styles := make([]string, 0, 1)
+	if isDev {
+		logger.Printf("development mode")
+	} else {
+		logger.Printf("production mode")
+		styles = append(styles, "/assets/css/app.css")
+	}
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
 	mainServer.Handle("/assets/js/", http.StripPrefix("/assets", fs))
 	mainServer.Handle("/assets/images/", http.StripPrefix("/assets", fs))
+	mainServer.Handle("/assets/css/", http.StripPrefix("/assets", fs))
 	mainServer.Handle("/", handlePage(
 		"index.html",
-		struct{ ScriptPath string }{ScriptPath: webpackDevHost},
+		struct {
+			PageTitle string
+			Scripts   []string
+			Styles    []string
+		}{
+			PageTitle: "Tomato RPG",
+			Scripts: []string{
+				webpackDevHost + "/assets/js/app.js",
+			},
+			Styles: styles,
+		},
 	))
 	mainServer.Handle("/oauth2/", userauth.LoginHandler(
 		db,
@@ -154,13 +179,16 @@ func main() {
 		struct {
 			PageTitle       string
 			PageHeaderTitle string
-			BasePath        string
 			Actions         []userauth.AuthProvider
+			Scripts         []string
+			Styles          []string
 		}{
 			PageTitle:       "TomatoRPG | Login",
 			PageHeaderTitle: "Login TomatoRPG",
-			BasePath:        "/oauth2",
 			Actions:         authProviders,
+			Styles: []string{
+				"/assets/css/app.css",
+			},
 		},
 	))
 	mainServer.Handle("/oauth2/logout",

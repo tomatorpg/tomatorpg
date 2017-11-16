@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const path = require('path');
 const url = require('url');
 const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 require('dotenv').config();
 
@@ -20,8 +21,8 @@ function getScriptHost() {
 }
 
 const extractSass = new ExtractTextPlugin({
-  filename: 'css/[name].[contenthash].css',
-  disable: !isDev,
+  filename: 'css/[name].css',
+  disable: isDev,
 });
 
 const plugins = isDev ? [
@@ -30,6 +31,14 @@ const plugins = isDev ? [
 ] : [
   new UglifyJSPlugin(),
   extractSass,
+  new OptimizeCssAssetsPlugin({
+    assetNameRegExp: /\.css$/,
+    cssProcessorOptions: {
+      discardComments: {
+        removeAll: true,
+      },
+    },
+  }),
 ];
 
 const sassRule = isDev ? {
@@ -41,6 +50,11 @@ const sassRule = isDev ? {
       loader: 'css-loader', // translates CSS into CommonJS
     }, {
       loader: 'sass-loader', // compiles Sass to CSS
+      query: {
+        outputStyle: 'expanded',
+        sourceMap: true,
+        sourceMapContents: true,
+      },
     },
   ],
 } : {
@@ -64,14 +78,16 @@ const externals = {
 const scriptHost = getScriptHost();
 
 module.exports = {
-  entry: [
-    'babel-polyfill',
-    './assets/src/js/app.js',
-  ],
+  entry: {
+    app: [
+      'babel-polyfill',
+      './assets/src/js/app.js',
+    ],
+  },
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
     publicPath: !isDev ? '' : scriptHost.publicPath,
-    filename: 'js/common.js',
+    filename: 'js/[name].js',
   },
   module: {
     rules: [
