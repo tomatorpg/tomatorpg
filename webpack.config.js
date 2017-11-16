@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const path = require('path');
 const url = require('url');
 const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 require('dotenv').config();
 
@@ -30,6 +31,14 @@ const plugins = isDev ? [
 ] : [
   new UglifyJSPlugin(),
   extractSass,
+  new OptimizeCssAssetsPlugin({
+    assetNameRegExp: /\.css$/,
+    cssProcessorOptions: {
+      discardComments: {
+        removeAll: true,
+      },
+    },
+  }),
 ];
 
 const sassRule = isDev ? {
@@ -78,7 +87,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
     publicPath: !isDev ? '' : scriptHost.publicPath,
-    filename: 'js/common.js',
+    filename: 'js/[name].js',
   },
   module: {
     rules: [

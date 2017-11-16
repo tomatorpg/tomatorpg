@@ -159,7 +159,7 @@ func main() {
 		}{
 			PageTitle: "Tomato RPG",
 			Scripts: []string{
-				webpackDevHost + "/assets/js/common.js",
+				webpackDevHost + "/assets/js/app.js",
 			},
 			Styles: styles,
 		},
