@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tomato RPG</title>
+  <title>{{ .PageTitle }}</title>
   <link rel="icon" href="/assets/images/favicon.ico" type="image/x-icon"/>
-  <link rel="stylesheet" type="text/css" href="/assets/css/app.css">
+{{ range $index, $style := .Styles }}
+  <link rel="stylesheet" type="text/css" href="{{ $style }}">
+{{ end }}
 </head>
 <body>
   <div id="app">Loading...</div>
-  <script src="{{ .ScriptPath }}/assets/js/common.js"></script>
+{{ range $index, $script := .Scripts }}
+  <script src="{{ $script }}"></script>
+{{ end }}
 </body>
 </html>

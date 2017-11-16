@@ -138,7 +138,19 @@ func main() {
 	mainServer.Handle("/assets/css/", http.StripPrefix("/assets", fs))
 	mainServer.Handle("/", handlePage(
 		"index.html",
-		struct{ ScriptPath string }{ScriptPath: webpackDevHost},
+		struct {
+			PageTitle string
+			Scripts   []string
+			Styles    []string
+		}{
+			PageTitle: "Tomato RPG",
+			Scripts: []string{
+				webpackDevHost + "/assets/js/common.js",
+			},
+			Styles: []string{
+				"/assets/css/app.css",
+			},
+		},
 	))
 	mainServer.Handle("/oauth2/", userauth.LoginHandler(
 		db,
@@ -155,13 +167,16 @@ func main() {
 		struct {
 			PageTitle       string
 			PageHeaderTitle string
-			BasePath        string
 			Actions         []userauth.AuthProvider
+			Scripts         []string
+			Styles          []string
 		}{
 			PageTitle:       "TomatoRPG | Login",
 			PageHeaderTitle: "Login TomatoRPG",
-			BasePath:        "/oauth2",
 			Actions:         authProviders,
+			Styles: []string{
+				"/assets/css/app.css",
+			},
 		},
 	))
 	mainServer.Handle("/oauth2/logout",

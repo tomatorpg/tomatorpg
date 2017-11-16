@@ -3,22 +3,12 @@
 <head>
 <title>{{ .PageTitle }}</title>
 <link rel="icon" href="/assets/images/favicon.ico" type="image/x-icon"/>
-<link rel="stylesheet" type="text/css" href="/assets/css/app.css">
-<style>
-body { margin: 0; font-family: san-serif; background-color: #EEE; }
-h1 { font-size: 1.3em; margin: 1em 0 2em; text-align: center; }
-main { max-width: 300px; margin: calc(50vh - 250px) auto 0; padding: 30px 50px; box-shadow: 1px 1px 10px #999; background-color: #FFF; }
-.actions .btn { background-color: #444; color: #FFF; display: block; margin: 0.5em; padding: 0.5em 1em; border-radius: 0.2em; text-decoration: none; text-align: center; font-weight: bold; transition: opacity 0.5s; }
-.actions .btn:hover { opacity: 0.7; }
-.actions .btn-login-google { background-color: #DB4437; }
-.actions .btn-login-facebook { background-color: #3B5998; }
-.actions .btn-login-twitter { background-color: #1DA1F2; }
-.actions .btn-login-github { background-color: #24292E; }
-.no-actions .messages { padding: 0.5em 1em; background-color: #FDD; color: #A00; text-align: center; border: 1px solid #A00; }
-</style>
+{{ range $index, $style := .Styles }}
+  <link rel="stylesheet" type="text/css" href="{{ $style }}">
+{{ end }}
 </head>
-<body>
-<main>
+<body id="page-login">
+<main id="login-box">
 <h1>{{ .PageHeaderTitle }}</h1>
 {{ if .Actions }}
   <div class="actions">
@@ -36,5 +26,8 @@ main { max-width: 300px; margin: calc(50vh - 250px) auto 0; padding: 30px 50px; 
   </div>
 {{ end }}
 </main>
+{{ range $index, $script := .Scripts }}
+  <script src="{{ $script }}"></script>
+{{ end }}
 </body>
 </html>
