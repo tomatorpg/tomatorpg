@@ -20,8 +20,8 @@ function getScriptHost() {
 }
 
 const extractSass = new ExtractTextPlugin({
-  filename: 'css/[name].[contenthash].css',
-  disable: !isDev,
+  filename: 'css/[name].css',
+  disable: isDev,
 });
 
 const plugins = isDev ? [
@@ -41,6 +41,11 @@ const sassRule = isDev ? {
       loader: 'css-loader', // translates CSS into CommonJS
     }, {
       loader: 'sass-loader', // compiles Sass to CSS
+      query: {
+        outputStyle: 'expanded',
+        sourceMap: true,
+        sourceMapContents: true,
+      },
     },
   ],
 } : {
@@ -64,10 +69,12 @@ const externals = {
 const scriptHost = getScriptHost();
 
 module.exports = {
-  entry: [
-    'babel-polyfill',
-    './assets/src/js/app.js',
-  ],
+  entry: {
+    app: [
+      'babel-polyfill',
+      './assets/src/js/app.js',
+    ],
+  },
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
     publicPath: !isDev ? '' : scriptHost.publicPath,
