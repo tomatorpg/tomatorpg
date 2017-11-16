@@ -22,6 +22,7 @@ import (
 )
 
 var port uint64
+var isDev bool
 var webpackDevHost string
 var publicURL string
 var jwtSecret string
@@ -56,6 +57,7 @@ func init() {
 	// check if in development mode
 	// if so, try to load webpack dev server host
 	if os.Getenv("NODE_ENV") == "development" {
+		isDev = true
 		if webpackDevHost = os.Getenv("WEBPACK_DEV_SERVER_HOST"); webpackDevHost == "" {
 			webpackDevHost = "http://localhost:8081" // default, if not set
 		}
@@ -70,6 +72,9 @@ func init() {
 	if jwtSecret = os.Getenv("JWT_SECRET"); jwtSecret == "" {
 		jwtSecret = "abcdef"
 	}
+
+	// log format
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 }
 
 /**
@@ -130,6 +135,15 @@ func main() {
 		logger.Print("warning: No authentication provider is properly setup. Please setup at least one.")
 	}
 
+	// stylesheet(s) to use
+	styles := make([]string, 0, 1)
+	if isDev {
+		logger.Printf("development mode")
+	} else {
+		logger.Printf("production mode")
+		styles = append(styles, "/assets/css/app.css")
+	}
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
@@ -147,9 +161,7 @@ func main() {
 			Scripts: []string{
 				webpackDevHost + "/assets/js/common.js",
 			},
-			Styles: []string{
-				"/assets/css/app.css",
-			},
+			Styles: styles,
 		},
 	))
 	mainServer.Handle("/oauth2/", userauth.LoginHandler(
