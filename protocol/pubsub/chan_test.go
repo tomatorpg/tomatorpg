@@ -83,13 +83,12 @@ dummyChanMainLoop:
 			for client := range ch.conns {
 				err := client.WriteJSON(msg)
 				if err != nil {
-					client.Close()
 					ch.Unsubscribe(client)
-					log.Printf("error: %v", err)
+					log.Printf("dummyChannel error: %v", err)
 				}
 			}
 		case <-time.After(1 * time.Second):
-			log.Printf("timeout")
+			log.Printf("dummyChannel timeout")
 			break dummyChanMainLoop
 		}
 	}
@@ -146,6 +145,8 @@ func TestWebsocketChanColl(t *testing.T) {
 
 func TestWebsocketChan_Broadcast(t *testing.T) {
 
+	t.Logf("start TestWebsocketChan_Broadcast")
+
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -167,6 +168,29 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 		}
 	}()
 
+	receive := func(idName string, id, v interface{}, conn *websocket.Conn) <-chan interface{} {
+		out := make(chan interface{})
+		go func() {
+			if err := conn.ReadJSON(v); err != nil {
+				t.Logf("failed to read conn: %s", err)
+				t.Logf("[%s: %#v] failed to read conn: %s", idName, id, err)
+				return
+			}
+			t.Logf("[%s: %#v] received", idName, id)
+			out <- v
+		}()
+		return out
+	}
+	receiveOrTimeout := func(what string, toWait time.Duration, received <-chan interface{}) (interface{}, error) {
+		timeout := time.After(toWait)
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("%s timeout", what)
+		case v := <-received:
+			return v, nil
+		}
+	}
+
 	testRoomServer := func(w http.ResponseWriter, req *http.Request) {
 
 		reqID := serial()
@@ -186,19 +210,6 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 			}
 		}
 
-		receive := func() <-chan *map[string]interface{} {
-			out := make(chan *map[string]interface{})
-			go func() {
-				v := make(map[string]interface{})
-				if err := conn.ReadJSON(&v); err != nil {
-					t.Logf("failed to read conn: %s", err)
-					return
-				}
-				t.Logf("[req: %d] server received: %#v", reqID, v)
-			}()
-			return out
-		}
-
 		go func() {
 			// register connection to chan
 			wsChan.Subscribe(conn)
@@ -207,14 +218,11 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 
 			// dummy loop for connection handle
 			for {
-				timeout := time.After(5 * time.Second)
-				received := receive()
-				select {
-				case <-timeout:
-					t.Logf("timeout")
-				case <-received:
-					// do nothing
-				}
+				receiveOrTimeout(
+					"testRoomServer",
+					5*time.Second,
+					receive("reqID", reqID, make(map[string]interface{}), conn),
+				)
 			}
 		}()
 	}
@@ -229,14 +237,15 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 
 	var err error
 
+	t.Logf("start testRoomServer")
 	srv := httptest.NewServer(http.HandlerFunc(testRoomServer))
 	defer srv.Close()
 
 	// make 2 separated ws connection to the dummy room server
+	t.Logf("making 2 ws connection to dummy room server")
 	u, _ := url.Parse(srv.URL)
 	u.Scheme = "ws"
-	conn1 := mustConnect(u.String())
-	conn2 := mustConnect(u.String())
+	conn1, conn2 := mustConnect(u.String()), mustConnect(u.String())
 	t.Logf("connection success")
 
 	go func() {
@@ -244,33 +253,48 @@ func TestWebsocketChan_Broadcast(t *testing.T) {
 			Action:  "say",
 			Message: "hello",
 		})
-		t.Logf("broadcast sent")
+		t.Logf("broadcast sent: say hello")
 	}()
 
-	bc1 := pubsub.Broadcast{}
-	err = conn1.ReadJSON(&bc1)
+	t.Logf("reading broadcast from conn1")
+	bc1raw, err := receiveOrTimeout(
+		"conn1 client",
+		5*time.Second,
+		receive("conn", 1, &pubsub.Broadcast{}, conn1),
+	)
 	if err != nil {
 		t.Fatalf("cannot read message: %v", err)
-	}
-	if want, have := "say", bc1.Data.Action; want != have {
-		t.Errorf("expected %#v, got %#v", want, have)
-	}
-	if want, have := "hello", bc1.Data.Message; want != have {
-		t.Errorf("expected %#v, got %#v", want, have)
+	} else if bc, ok := bc1raw.(*pubsub.Broadcast); ok {
+		if want, have := "say", bc.Data.Action; want != have {
+			t.Errorf("expected %#v, got %#v", want, have)
+		}
+		if want, have := "hello", bc.Data.Message; want != have {
+			t.Errorf("expected %#v, got %#v", want, have)
+		}
+	} else {
+		t.Errorf("bc is nil")
 	}
 
-	bc2 := pubsub.Broadcast{}
-	err = conn2.ReadJSON(&bc2)
+	t.Logf("reading broadcast from conn2")
+	bc2raw, err := receiveOrTimeout(
+		"conn2 client",
+		5*time.Second,
+		receive("conn", 2, &pubsub.Broadcast{}, conn2),
+	)
 	if err != nil {
 		t.Fatalf("cannot read message: %v", err)
-	}
-	if want, have := "say", bc2.Data.Action; want != have {
-		t.Errorf("expected %#v, got %#v", want, have)
-	}
-	if want, have := "hello", bc2.Data.Message; want != have {
-		t.Errorf("expected %#v, got %#v", want, have)
+	} else if bc, ok := bc2raw.(*pubsub.Broadcast); ok {
+		if want, have := "say", bc.Data.Action; want != have {
+			t.Errorf("expected %#v, got %#v", want, have)
+		}
+		if want, have := "hello", bc.Data.Message; want != have {
+			t.Errorf("expected %#v, got %#v", want, have)
+		}
+	} else {
+		t.Errorf("bc is nil")
 	}
 
+	t.Logf("test done")
 }
 
 func TestWebsocketChan_Unsubscribe(t *testing.T) {
@@ -333,7 +357,7 @@ func TestWebsocketChan_Unsubscribe(t *testing.T) {
 	mustConnect := func(url string) (conn *websocket.Conn) {
 		conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 		if err != nil {
-			log.Fatalf("cannot make websocket connection: %v", err)
+			t.Fatalf("cannot make websocket connection: %v", err)
 		}
 		return
 	}
