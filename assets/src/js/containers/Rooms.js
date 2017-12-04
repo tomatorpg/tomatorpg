@@ -36,23 +36,28 @@ class Rooms extends Component {
           <div className="create-button">
             <button className="btn btn-primary" type="button" onClick={evt => this.createRoom(evt)}>Create</button>
           </div>
-          <ul className="rooms">
-            { rooms.map((room) => {
-              const key = `room-${room.id}`;
-              const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
-              room.name : `Room ${room.id}`;
-              return (
-                <li key={key} className="room">
-                  <Link className="room-name" to={`/rooms/${room.id}`}>
-                    {roomDisplayName}
-                  </Link>
-                  <div className="room-actions">
-                    <button className="btn btn-primary" type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
-                  </div>
-                </li>
-              );
-            }) }
-          </ul>
+          <div className="rooms-wrapper">
+            <div className="area-header">
+              Rooms
+            </div>
+            <ul className="rooms">
+              { rooms.map((room) => {
+                const key = `room-${room.id}`;
+                const roomDisplayName = (typeof room.name === 'string' && room.name.trim() !== '') ?
+                room.name : `Room ${room.id}`;
+                return (
+                  <li key={key} className="room">
+                    <Link className="room-name" to={`/rooms/${room.id}`}>
+                      {roomDisplayName}
+                    </Link>
+                    <div className="room-actions">
+                      <button className="btn btn-primary" type="button" onClick={() => this.joinRoom(room.id)}>Join</button>
+                    </div>
+                  </li>
+                );
+              }) }
+            </ul>
+          </div>
         </div>
       </div>
     ) : (
