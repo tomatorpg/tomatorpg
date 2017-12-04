@@ -25,10 +25,13 @@ class Rooms extends Component {
       <div id="rooms">
         <div className="container">
           <Notice>
+            <div style={{ textAlign: 'center', marginBottom: '1em' }}>
+              <img alt="logo" src="/assets/images/diceicon.png" style={{ width: '8%' }} />
+            </div>
             <h1 style={{ textAlign: 'center' }}> Welcome to Tomato RPG. </h1>
-            <p style={{ marginLeft: '1em', marginRight: '1em' }}> Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-              Duis nec dapibus nulla. Etiam eleifend risus leo,
-              eu scelerisque lorem posuere vel.</p>
+            <p style={{ textAlign: 'center' }}>
+              Enjoy your TRPG Game here.
+            </p>
           </Notice>
           <div className="create-button">
             <button className="btn btn-primary" type="button" onClick={evt => this.createRoom(evt)}>Create</button>
