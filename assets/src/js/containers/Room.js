@@ -5,6 +5,7 @@ jsx-a11y/no-autofocus: 'warn',
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import Background from './Background';
 import { messageInRoom } from '../transports/JSONSocket';
 
 class Room extends Component {
@@ -54,6 +55,7 @@ class Room extends Component {
       <div className="no-message">No message yet</div>;
     return (
       <div className="container">
+        <Background />
         <div id="room">
           <div className="messages-wrapper" ref={(element) => { this.messageWrapper = element; }}>
             <div className="area-header">
