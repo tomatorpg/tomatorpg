@@ -2,12 +2,16 @@
   .create-button{
     text-align: right;
   }
+
+  .rooms-wrapper{
+    margin-top: 1em;
+  }
+  
   ul.rooms {
     display: block;
     list-style-type: none;
     padding: 0.3em;
     border: 2px solid #DDDDDD;
-    margin-top: 1em;
     li {
       display: flex;
       border-bottom: 1px solid #DDDDDD;
