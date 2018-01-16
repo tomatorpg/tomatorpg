@@ -12,8 +12,9 @@
 <h1>{{ .PageHeaderTitle }}</h1>
 {{ if .Actions }}
   <div class="actions">
+    {{ $baseURL := .BaseLoginURL }}
     {{ range .Actions }}
-      <a class="btn btn-login-{{ .ID }}" href="{{ .Path }}">{{ .Name }}</a>
+      <a class="btn btn-login-{{ .ID }}" href="{{ $baseURL }}{{ .ID }}">{{ .Name }}</a>
     {{ end }}
   </div>
 {{ else }}

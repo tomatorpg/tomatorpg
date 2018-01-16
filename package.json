@@ -13,7 +13,7 @@
     "clean:dist": "rm -rf ./assets/dist",
     "dev": "npm-run-all --parallel dev:webpack dev:gin",
     "dev:webpack": "NODE_ENV=development webpack-dev-server",
-    "dev:gin": "NODE_ENV=development gin -port 8080 -build cmd/tomatorpg/.",
+    "dev:gin": "NODE_ENV=development gin -port 8080 -build cmd/tomatorpg/. -i",
     "devfront": "npm-run-all --parallel devfront:build-and-run dev:webpack",
     "devfront:run": "NODE_ENV=development ./tomatorpg",
     "devfront:build-and-run": "npm-run-all build:golang:server devfront:run",
