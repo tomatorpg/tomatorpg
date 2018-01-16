@@ -15,9 +15,12 @@ before_install:
   - yarn install
 
 script:
-  - go test -v ./assets
-  - go test -v ./cmd/tomatorpg
-  - go test -v ./models
-  - go test -v ./protocol/**/*
-  - go test -v ./utils
+  - |
+    for d in $(go list ./... | grep -Ev "vendor|assets|node_modules|docs"); do
+        go test -v -race -coverprofile=profile.out -covermode=atomic $d
+        if [ -f profile.out ]; then
+            cat profile.out >> coverage.txt
+            rm profile.out
+        fi
+    done
   - yarn test:js
