@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -26,7 +27,7 @@ import (
 var port uint64
 var isDev bool
 var webpackDevHost string
-var publicURL string
+var publicURL *url.URL
 var jwtSecret string
 
 var logger *log.Logger
@@ -66,8 +67,12 @@ func init() {
 	}
 
 	// load public url for OAuth2 redirect
-	if publicURL = os.Getenv("PUBLIC_URL"); publicURL == "" {
-		publicURL = "http://localhost:8080"
+	var publicURLStr string
+	if publicURLStr = os.Getenv("PUBLIC_URL"); publicURLStr == "" {
+		publicURLStr = "http://localhost:8080"
+	}
+	if publicURL, err = url.Parse(publicURLStr); err != nil {
+		panic(err.Error())
 	}
 
 	// load JWT secret
@@ -139,6 +144,14 @@ func main() {
 		styles = append(styles, "/assets/css/app.css")
 	}
 
+	// auth context
+	authCtx := &middleauth.Context{
+		PublicURL: publicURL,
+		LoginPath: "/oauth2/",
+		SuccessPath: "/",
+		ErrPath: "/oauth2/error",
+	}
+
 	// Create a simple file server
 	fs := http.FileServer(httpfs.New(assets.FileSystem()))
 	mainServer := http.NewServeMux()
@@ -163,10 +176,7 @@ func main() {
 		gormstorage.UserStorageCallback(db),
 		middleauth.JWTSession(cookieName, jwtSecret, crypto.SigningMethodHS256),
 		authProviders,
-		publicURL,
-		"/oauth2/",
-		publicURL+"/",
-		publicURL+"/oauth2/error",
+		authCtx,
 	))
 	mainServer.Handle("/oauth2/login", handlePage(
 		"login.html",
@@ -187,8 +197,7 @@ func main() {
 			},
 		},
 	))
-	mainServer.Handle("/oauth2/logout",
-		middleauth.LogoutHandler("/", cookieName))
+	mainServer.Handle("/oauth2/logout", middleauth.LogoutHandler(authCtx))
 	mainServer.Handle("/api.v1", pubsubServer)
 
 	// some custom reroutes
