@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
-	"time"
+
+	"github.com/yookoala/middleauth/storage/gorm"
+	"gopkg.in/jose.v1/crypto"
 
 	"golang.org/x/tools/godoc/vfs/httpfs"
 
@@ -17,14 +20,14 @@ import (
 	"github.com/tomatorpg/tomatorpg/assets"
 	"github.com/tomatorpg/tomatorpg/models"
 	"github.com/tomatorpg/tomatorpg/protocol/pubsub"
-	"github.com/tomatorpg/tomatorpg/userauth"
 	"github.com/tomatorpg/tomatorpg/utils"
+	"github.com/yookoala/middleauth"
 )
 
 var port uint64
 var isDev bool
 var webpackDevHost string
-var publicURL string
+var publicURL *url.URL
 var jwtSecret string
 
 var logger *log.Logger
@@ -64,8 +67,12 @@ func init() {
 	}
 
 	// load public url for OAuth2 redirect
-	if publicURL = os.Getenv("PUBLIC_URL"); publicURL == "" {
-		publicURL = "http://localhost:8080"
+	var publicURLStr string
+	if publicURLStr = os.Getenv("PUBLIC_URL"); publicURLStr == "" {
+		publicURLStr = "http://localhost:8080"
+	}
+	if publicURL, err = url.Parse(publicURLStr); err != nil {
+		panic(err.Error())
 	}
 
 	// load JWT secret
@@ -112,14 +119,7 @@ func main() {
 	}
 
 	// login cookies
-	genLoginCookie := func(r *http.Request) *http.Cookie {
-		return &http.Cookie{
-			Name:     "tomatorpg-token",
-			Path:     "/",
-			HttpOnly: true,
-			Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days later
-		}
-	}
+	cookieName := "tomatorpg-token"
 
 	// websocket pubsub server
 	pubsubServer := pubsub.NewServer(
@@ -130,7 +130,7 @@ func main() {
 	)
 
 	// get auth providers from os environment
-	authProviders := userauth.EnvProviders(os.Getenv, "/oauth2")
+	authProviders := middleauth.EnvProviders(os.Getenv)
 	if len(authProviders) == 0 {
 		logger.Print("warning: No authentication provider is properly setup. Please setup at least one.")
 	}
@@ -142,6 +142,14 @@ func main() {
 	} else {
 		logger.Printf("production mode")
 		styles = append(styles, "/assets/css/app.css")
+	}
+
+	// auth context
+	authCtx := &middleauth.Context{
+		PublicURL: publicURL,
+		LoginPath: "/oauth2/",
+		SuccessPath: "/",
+		ErrPath: "/oauth2/error",
 	}
 
 	// Create a simple file server
@@ -164,25 +172,23 @@ func main() {
 			Styles: styles,
 		},
 	))
-	mainServer.Handle("/oauth2/", userauth.LoginHandler(
-		db,
-		genLoginCookie,
+	mainServer.Handle("/oauth2/", middleauth.LoginHandler(
+		gormstorage.UserStorageCallback(db),
+		middleauth.JWTSession(cookieName, jwtSecret, crypto.SigningMethodHS256),
 		authProviders,
-		jwtSecret,
-		publicURL,
-		"/oauth2",
-		"/",
-		"/oauth2/error",
+		authCtx,
 	))
 	mainServer.Handle("/oauth2/login", handlePage(
 		"login.html",
 		struct {
+			BaseLoginURL    string
 			PageTitle       string
 			PageHeaderTitle string
-			Actions         []userauth.AuthProvider
+			Actions         []middleauth.AuthProvider
 			Scripts         []string
 			Styles          []string
 		}{
+			BaseLoginURL:    "/oauth2/login/",
 			PageTitle:       "TomatoRPG | Login",
 			PageHeaderTitle: "Login TomatoRPG",
 			Actions:         authProviders,
@@ -191,8 +197,7 @@ func main() {
 			},
 		},
 	))
-	mainServer.Handle("/oauth2/logout",
-		userauth.LogoutHandler("/", genLoginCookie))
+	mainServer.Handle("/oauth2/logout", middleauth.LogoutHandler(authCtx))
 	mainServer.Handle("/api.v1", pubsubServer)
 
 	// some custom reroutes

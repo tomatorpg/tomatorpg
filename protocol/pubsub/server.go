@@ -8,8 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 	"github.com/tomatorpg/tomatorpg/models"
-	"github.com/tomatorpg/tomatorpg/userauth"
 	"github.com/tomatorpg/tomatorpg/utils"
+	"github.com/yookoala/middleauth"
+	"gopkg.in/jose.v1/crypto"
 )
 
 // Server implements pubsub websocket server
@@ -82,7 +83,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"error", err.Error(),
 			)
 		}
-	} else if token, err := userauth.DecodeTokenStr("abcdef", c.Value); err != nil {
+	} else if token, err := middleauth.DecodeTokenStr(srv.jwtKey, c.Value, crypto.SigningMethodHS256); err != nil {
 		logger.Log(
 			"at", "error",
 			"message", "error parsing / validating token",
