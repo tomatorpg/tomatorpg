@@ -21,12 +21,14 @@
     "test:js": "npm-run-all test:jest test:eslint",
     "test:eslint": "eslint ./assets/src/js ./assets/__tests__",
     "test:jest": "jest",
-    "test:go": "go test -v -cover ./assets/... ./cmd/... ./models/... ./protocol/... ./userauth/... ./utils/..."
+    "test:go": "go test -v -cover ./..."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bootstrap": "4.0.0-beta.2",
+    "bootstrap": "^4.0.0",
+    "jquery": "^3.3.1",
+    "popper.js": "^1.14.6",
     "prop-types": "^15.5.10",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
