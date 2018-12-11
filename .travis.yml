@@ -4,10 +4,12 @@ go:
   - 1.7.x
   - 1.8.x
   - 1.9.x
+  - 1.10.x
+  - 1.11.x
   - master
 
 env:
-  - TRAVIS_NODE_VERSION=6.9
+  - TRAVIS_NODE_VERSION=6.9 GO111MODULE=on
 
 before_install:
   - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
